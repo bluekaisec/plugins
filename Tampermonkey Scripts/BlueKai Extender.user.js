@@ -46,7 +46,43 @@
 	// DETECT OPERATION SYSTEM
 	if(navigator && navigator.platform && navigator.platform.toLowerCase().indexOf('mac') > -1){_bk.os = "mac";} else {_bk.os ="windows";}
 	
-	// SELF-CLASSIFICATION RULES	
+	// ### GENERIC CODE ###
+	window._bk = window._bk || {};
+	window._bk.functions = window._bk.functions || {};
+	window._bk.logs = window._bk.logs || {};
+
+	// ### GENERIC FUNCTIONS ###
+
+	/*
+	######################################
+	### FUNCTION : CSV EXPORT FUNCTION ###
+	######################################
+	*/		
+
+	// FUNCTION : CSV EXPORTER
+	window._bk.functions.csvExport = function(data) {
+
+		// data must be formatted in arrays of arrays of data (one big array with an array per line, e.g. [[line1data1,line1data2],[line2data1,line2data2]])
+		var csvContent = "data:text/csv;charset=utf-8,";
+		data.forEach(function(infoArray, index) {
+
+			dataString = infoArray.join(",");
+			csvContent += index < data.length ? dataString + "\n" : dataString;
+
+		});
+
+
+		var encodedUri = encodeURI(csvContent);
+		var link = document.createElement("a");
+		link.setAttribute("href", encodedUri);
+		link.setAttribute("download", "category_export.csv");
+		document.body.appendChild(link); // Required for FF
+
+		link.click(); // This will download the data file named "my_data.csv".
+
+	}
+
+	// ### SELF-CLASSIFICATION RULES ###	
 	if (document.location.href.indexOf("https://publisher.bluekai.com/classification_rules") > -1){
 
 		/*
@@ -427,6 +463,7 @@
 
 		};
 
+
 		/*
 		####################################
 		### ADD BUTTON TO UI ###
@@ -436,4 +473,134 @@
 		jQuery('button[value="destroy"]').parent().parent().append('<li><button id="bk_add_bulk_classifications" onclick="_bk.functions.bk_add_bulk_classifications_prompt()" class="button" name = "Add Bulk Classifications">Add Bulk Classifications</button></li>');
 
 	}
+
+	// SELF-CLASSIFICATION CATEGORIES ###
+
+	/*
+		
+	##############################################
+	### 1. Self-Classification Category Puller ###
+	##############################################
+
+	*/
+
+	if (document.location.href.indexOf("https://publisher.bluekai.com/classification_categories") > -1) {
+
+		// INITIAL OBJECTS
+		window._bk = window._bk || {};
+		window._bk.functions = window._bk.functions || {};
+		window._bk.logs = window._bk.logs || {};
+		window._bk.category_ids = {};
+
+		// FUNCTION : Category Builder
+		window._bk.functions.category_grabber = function(category_id) {
+
+			jQuery.ajax({
+				type: "GET",
+				url: "https://publisher.bluekai.com/classification_categories/" + category_id + "/children?_=" + Math.random() * 100000000000000000,
+				dataType: "json",
+
+			}).success(function(data) {
+
+				// Timer to check if last request
+				clearInterval(_bk.functions.finalRequestChecker); // clear previous timer
+
+				// FUNCTION Create timer to check when final call categories have been received
+				_bk.functions.finalRequestChecker = setInterval(function() {
+
+					// code to export
+					alertify.delay(3000).success("Exporting CSV...");
+					console.log("Self Classification | ACTION | Exporting Categories");
+
+					// Create CSV array
+					var csv_export = [];
+					csv_export.push(["category_id", "category_name ('>' replaced by '-')", "full_category_path ('>' replaced by '-')", "parent_id"]); // column headers
+
+					// create row of data for each category
+					for (varName in _bk.category_ids) {
+
+						line_data = [_bk.category_ids[varName]["category_id"], _bk.category_ids[varName]["category_name"], _bk.category_ids[varName]["full_category_path"], _bk.category_ids[varName]["parent_id"]];
+
+						csv_export.push(line_data)
+
+					}
+
+					window._bk.functions.csvExport(csv_export); // export CSV
+					clearInterval(_bk.functions.finalRequestChecker); // clear previous timer
+
+				}, 5000);
+
+
+
+				// Success	
+				for (var i = 0; i < data.length; i++) {
+
+					var category_name = data[i].name.replace(/>/g, "-");
+					var category_id = data[i].id;
+					var parent_id = data[i].parent_id;
+
+					// calculate full category path
+					if (!_bk.category_ids[parent_id]) {
+
+						var full_category_path = category_name;
+
+					} else if (_bk.category_ids[parent_id].full_category_path) {
+
+						var full_category_path = _bk.category_ids[parent_id].full_category_path + " > " + category_name;
+
+					}
+
+					// Push data into _bk.category_ids object
+					window._bk.category_ids[category_id] = {};
+					window._bk.category_ids[category_id]["category_name"] = category_name;
+					window._bk.category_ids[category_id]["category_id"] = category_id;
+					window._bk.category_ids[category_id]["parent_id"] = parent_id;
+					window._bk.category_ids[category_id]["full_category_path"] = full_category_path;
+
+					console.log("Self Classification | SUCCESS | Child Categories Received from parent node : id=" + category_id + " name=" + category_name);
+
+					// if this has child categories, pull them all
+					if (data[i].leaf === false) {
+
+
+						console.log("Self Classification | ACTION | Pulling initial additional child categories for node : id=" + data[i].id + " name=" + data[i].name);
+						window._bk.functions.category_grabber(data[i].id);
+
+					}
+				}
+
+			}).fail(function(err) {
+
+				// Fail
+
+				// ADD ERROR DETAILS		
+				console.log("Self Classification | FAIL | " + err.responseText);
+
+			});
+
+		}
+
+		// ADD BUTTON TO EXPORT IDS
+		jQuery('button[value="reorder"]').parent().append('<li><button id="bk_Extender_category_export" onclick="window._bk.functions.category_grabber_start()" class="button" name = "BK Extender Category Exporter">Export All Categories</button></li>');
+
+
+		// BEGIN SCRAPING
+		window._bk.functions.category_grabber_start = function() {
+
+			console.log("Self Classification | ACTION | Pulling initial child categories");
+
+			alertify.maxLogItems(1).delay(0).log("Gathering Categories...");
+
+			var initial_category_id = jQuery('li[class="tree-node"]').first().attr('title');
+
+			// clearing categories from _bk.category_ids
+			window._bk.category_ids = {};
+
+			window._bk.functions.category_grabber(initial_category_id);
+
+		}
+
+	}
+
+
 })();
