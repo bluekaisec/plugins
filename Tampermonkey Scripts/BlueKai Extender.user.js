@@ -519,7 +519,7 @@
 					// create row of data for each category
 					for (varName in window._bk.category_ids) {
 
-						line_data = [window._bk.category_ids[varName]["category_id"], window._bk.category_ids[varName]["category_name"], window._bk.category_ids[varName]["full_category_path"], window._bk.category_ids[varName]["parent_id"]];
+						var line_data = [window._bk.category_ids[varName]["category_id"], window._bk.category_ids[varName]["category_name"], window._bk.category_ids[varName]["full_category_path"], window._bk.category_ids[varName]["parent_id"]];
 
 						csv_export.push(line_data)
 
