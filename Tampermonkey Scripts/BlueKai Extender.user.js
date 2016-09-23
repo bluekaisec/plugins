@@ -518,9 +518,9 @@
 
 					// create row of data for each category
 					console.log(window._bk.category_ids);
-					for (varName in window._bk.category_ids) {
+					for (varLoopName in window._bk.category_ids) {
 
-						var line_data = [window._bk.category_ids[varName]["category_id"], window._bk.category_ids[varName]["category_name"], window._bk.category_ids[varName]["full_category_path"], window._bk.category_ids[varName]["parent_id"]];
+						var line_data = [window._bk.category_ids[varLoopName]["category_id"], window._bk.category_ids[varLoopName]["category_name"], window._bk.category_ids[varLoopName]["full_category_path"], window._bk.category_ids[varLoopName]["parent_id"]];
 
 						csv_export.push(line_data)
 
