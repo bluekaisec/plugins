@@ -64,9 +64,17 @@
 
 		// data must be formatted in arrays of arrays of data (one big array with an array per line, e.g. [[line1data1,line1data2],[line2data1,line2data2]])
 		var csvContent = "data:text/csv;charset=utf-8,";
+
+		csvContent += "NOTE : All commas have been replaced by '-' to ensure CSV could be generated correctly" + "\n" + "\n";
+
 		data.forEach(function(infoArray, index) {
 
-			dataString = infoArray.join(",");
+			// replace any "," to work in CSV
+			for (var i = 0; i < infoArray.length; i++) {
+				infoArray[i] = infoArray[i].replace(/,/g, "-");
+			}
+
+			var dataString = infoArray.join(",");
 			csvContent += index < data.length ? dataString + "\n" : dataString;
 
 		});
@@ -517,7 +525,7 @@
 					csv_export.push(["category_id", "category_name ('>' replaced by '-')", "full_category_path ('>' replaced by '-')", "parent_id"]); // column headers
 
 					// create row of data for each category
-					for (varName in window._bk.category_ids) {
+					for (var varName in window._bk.category_ids) {
 
 						var line_data = [window._bk.category_ids[varName]["category_id"], window._bk.category_ids[varName]["category_name"], window._bk.category_ids[varName]["full_category_path"], window._bk.category_ids[varName]["parent_id"]];
 
