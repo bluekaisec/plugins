@@ -517,9 +517,9 @@
 					csv_export.push(["category_id", "category_name ('>' replaced by '-')", "full_category_path ('>' replaced by '-')", "parent_id"]); // column headers
 
 					// create row of data for each category
-					for (varName in _bk.category_ids) {
+					for (varName in window._bk.category_ids) {
 
-						line_data = [_bk.category_ids[varName]["category_id"], _bk.category_ids[varName]["category_name"], _bk.category_ids[varName]["full_category_path"], _bk.category_ids[varName]["parent_id"]];
+						line_data = [window._bk.category_ids[varName]["category_id"], window._bk.category_ids[varName]["category_name"], window._bk.category_ids[varName]["full_category_path"], window._bk.category_ids[varName]["parent_id"]];
 
 						csv_export.push(line_data)
 
