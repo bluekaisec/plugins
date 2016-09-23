@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BlueKai Extender
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  Extending BlueKai UI to improve
 // @author       Roshan Gonsalkorale (roshan.gonsalkorale@oracle.com)
 // @match        https://*.bluekai.com/*
