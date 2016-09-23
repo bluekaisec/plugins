@@ -517,6 +517,7 @@
 					csv_export.push(["category_id", "category_name ('>' replaced by '-')", "full_category_path ('>' replaced by '-')", "parent_id"]); // column headers
 
 					// create row of data for each category
+					console.log(window._bk.category_ids);
 					for (varName in window._bk.category_ids) {
 
 						var line_data = [window._bk.category_ids[varName]["category_id"], window._bk.category_ids[varName]["category_name"], window._bk.category_ids[varName]["full_category_path"], window._bk.category_ids[varName]["parent_id"]];
