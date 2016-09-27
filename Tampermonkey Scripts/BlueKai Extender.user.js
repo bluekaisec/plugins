@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BlueKai Extender
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2
 // @description  Extending BlueKai UI to improve
 // @author       Roshan Gonsalkorale (roshan.gonsalkorale@oracle.com)
 // @match        https://*.bluekai.com/*
@@ -51,12 +51,10 @@
 	window._bk.functions = window._bk.functions || {};
 	window._bk.logs = window._bk.logs || {};
 
-	// ### GENERIC FUNCTIONS ###
-
 	/*
-	######################################
-	### FUNCTION : CSV EXPORT FUNCTION ###
-	######################################
+	#########################
+	### Generic Functions ###
+	#########################
 	*/		
 
 	// FUNCTION : CSV EXPORTER
@@ -90,14 +88,21 @@
 
 	}
 
+	/*
+		
+	#################################
+	### Self-Classification Rules ###
+	#################################
+
+	*/
+
 	// ### SELF-CLASSIFICATION RULES ###	
+
 	if (document.location.href.indexOf("https://publisher.bluekai.com/classification_rules") > -1){
 
 		/*
 		
-		###################
-		### 1. HOT KEYS ###
-		###################
+		// ### HOT KEYS ###
 
 		*/
 
@@ -191,23 +196,10 @@
 				}
 			}
 		});
-	
-
-		/*
 		
-		############################################
-		### 2. BULK SELF-CLASSIFICATION IMPORTER ###
-		############################################
-
-		*/
-
-		/*
-		##################################
-		### FUNCTION : Begin Data Send ###
-		##################################
-		*/
-
-
+		// ### BULK RULE IMPORTER ###
+		
+		// FUNCTION : Begin Data Send ###
 		window._bk.functions.beginClassification = function(data) {
 
 			// config
@@ -284,12 +276,8 @@
 
 		};
 
-		/*
-		###############################
-		### FUNCTION : Call Batcher ###
-		###############################
-		*/
-
+		
+		// FUNCTION : Call Batcher ###		
 		window._bk.functions.callBatcher = function() {
 
 			var data = window._bk.logs.calls;
@@ -322,12 +310,8 @@
 
 		};
 
-		/*
-		##################################
-		### FUNCTION : Call Dispatcher ###
-		##################################
-		*/
-
+		
+		// FUNCTION : Call Dispatcher ###
 		window._bk.functions.callDispatcher = function(data) {
 
 			var ruleName = data.name;
@@ -365,13 +349,8 @@
 
 
 		};
-
-		/*
-		####################################
-		### FUNCTION : BATCH API CHECKER ###
-		####################################
-		*/
-
+		
+		// FUNCTION : BATCH API CHECKER ###		
 		_bk.functions.batch_api_checker = function() {
 
 
@@ -406,12 +385,8 @@
 
 		};
 
-		/*
-		#############################################
-		### FUNCTION : ADD CLASSIFICATIONS PROMPT ###
-		#############################################
-		*/
-
+		
+		// FUNCTION : ADD CLASSIFICATIONS PROMPT ###				
 		window._bk.functions.bk_add_bulk_classifications_prompt = function(data) {
 
 			var message = "<h2>Please paste your JSON data in this format</h2>" +
@@ -472,25 +447,20 @@
 		};
 
 
-		/*
-		####################################
-		### ADD BUTTON TO UI ###
-		####################################
-		*/
-
+		// ADD BUTTON TO UI ###
 		jQuery('button[value="destroy"]').parent().parent().append('<li><button id="bk_add_bulk_classifications" onclick="_bk.functions.bk_add_bulk_classifications_prompt()" class="button" name = "Add Bulk Classifications">Add Bulk Classifications</button></li>');
 
 	}
 
-	// SELF-CLASSIFICATION CATEGORIES ###
-
 	/*
 		
-	##############################################
-	### 1. Self-Classification Category Puller ###
-	##############################################
+	#############################################
+	### Self-Classification Category Exporter ###
+	#############################################
 
 	*/
+
+	// SELF-CLASSIFICATION CATEGORIES ###
 
 	if (document.location.href.indexOf("https://publisher.bluekai.com/classification_categories") > -1) {
 
@@ -607,6 +577,96 @@
 			window._bk.functions.category_grabber(initial_category_id);
 
 		}
+
+	}
+
+	/*
+		
+	################################################
+	### Admin Table Downloader and Bootstrap CSS ###
+	################################################
+
+	*/
+
+	// supports state dump
+
+	if (document.domain === "tags.bluekai.com" && document.location.pathname === "/state_dump") {
+
+		// Add libraries
+		file_adder("script", "//code.jquery.com/jquery-3.1.1.min.js"); // JQuery
+		file_adder("css", "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"); // Bootstrap
+
+		// DECLARE OBJECT
+		window._bk = window._bk || {};
+		window._bk.functions = window._bk.functions || {};
+		window._bk.logs = window._bk.logs || {};
+
+		// FUNCTION : Table Download to CSV function and download button in UI
+		window._bk.functions.table_export_looper = function() {
+
+			setTimeout(function() {
+
+				if (jQuery !== "undefined" && jQuery.fn && jQuery.fn.jquery) {
+
+					jQuery.fn.tableToCSV = function() {
+
+						var clean_text = function(text) {
+							text = text.replace(/"/g, '""');
+							return '"' + text + '"';
+						};
+
+						$(this).each(function() {
+							var table = $(this);
+							var caption = $(this).find('caption').text();
+							var title = [];
+							var rows = [];
+
+							$(this).find('tr').each(function() {
+								var data = [];
+								$(this).find('th').each(function() {
+									var text = clean_text($(this).text());
+									title.push(text);
+								});
+								$(this).find('td').each(function() {
+									var text = clean_text($(this).text());
+									data.push(text);
+								});
+								data = data.join(",");
+								rows.push(data);
+							});
+							title = title.join(",");
+							rows = rows.join("\n");
+
+							var csv = title + rows;
+							var uri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+							var download_link = document.createElement('a');
+							download_link.href = uri;
+							var ts = new Date().getTime();
+							if (caption == "") {
+								download_link.download = ts + ".csv";
+							} else {
+								download_link.download = caption + "-" + ts + ".csv";
+							}
+							document.body.appendChild(download_link);
+							download_link.click();
+							document.body.removeChild(download_link);
+						});
+
+					};
+
+				} else {
+
+					window._bk.functions.table_export_looper();
+				}
+
+			}, 500);
+		}
+
+		// Add Table Exporter Function
+		window._bk.functions.table_export_looper();
+
+		// Add button to download CSV
+		jQuery('body').prepend('<button id="bk_extender_table_download" onclick="jQuery(\'table\').tableToCSV();" class="button" name = "BK Extender Table Downloader">Download Table to CSV</button><br>');
 
 	}
 
