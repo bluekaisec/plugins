@@ -5,6 +5,7 @@
 // @description  Extending BlueKai UI to improve
 // @author       Roshan Gonsalkorale (roshan.gonsalkorale@oracle.com)
 // @match        https://*.bluekai.com/*
+// @match        http://*.bluekai.com/*
 // @exclude 	 https://wunderbar.bluekai.com*
 // @grant        none
 
@@ -606,8 +607,12 @@
 
 			setTimeout(function() {
 
-				if (jQuery !== "undefined" && jQuery.fn && jQuery.fn.jquery) {
+				if (typeof jQuery !== "undefined" && jQuery.fn && jQuery.fn.jquery) {
 
+					// Add button to download CSV
+					jQuery('body').prepend('<button id="bk_extender_table_download" onclick="jQuery(\'table\').tableToCSV();" class="button" name = "BK Extender Table Downloader">Download Table to CSV</button><br><br>');
+
+					// Define table exporter function
 					jQuery.fn.tableToCSV = function() {
 
 						var clean_text = function(text) {
@@ -664,10 +669,7 @@
 
 		// Add Table Exporter Function
 		window._bk.functions.table_export_looper();
-
-		// Add button to download CSV
-		jQuery('body').prepend('<button id="bk_extender_table_download" onclick="jQuery(\'table\').tableToCSV();" class="button" name = "BK Extender Table Downloader">Download Table to CSV</button><br>');
-
+		
 	}
 
 
