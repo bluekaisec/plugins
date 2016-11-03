@@ -917,7 +917,7 @@
 
 
 		// ADD BUTTON TO UI ###
-		jQuery('button[value="reorder"]').parent().append('<li><button id="bk_add_bulk_categories" onclick="_bk.functions.bk_add_bulk_categories_prompt()" class="button" name = "Add Bulk Categories">Add Bulk Categories (beta)</button></li>');		
+		jQuery('button[value="reorder"]').parent().append('<li><button id="bk_add_bulk_categories" onclick="_bk.functions.bk_add_bulk_categories_prompt()" class="button" name = "Add Bulk Categories">Add Bulk Categories</button></li>');		
 
 	}
 

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BlueKai Extender
 // @namespace    http://tampermonkey.net/
-// @version      1.2
+// @version      1.3
 // @description  Extending BlueKai UI to improve
 // @author       Roshan Gonsalkorale (oracle_dmp_emea_deployments_gb_grp@oracle.com)
 // @match        https://*.bluekai.com/*
@@ -472,125 +472,57 @@
 	// ### SELF-CLASSIFICATION CATEGORIES ###	
 
 	if (document.location.href.indexOf("https://publisher.bluekai.com/classification_categories") > -1){
+
+		/*
 		
+		// ### HOT KEYS ###
+
+		*/
+
+		
+		// Declare help button dialog
+		_bk.msg = "<h2>Blue Kai Extender Help</h2>" +
+			"<p>UPDATE THIS MESSAGE</p><br>" + // update this message
+			"<table align style='width:100%'>" +
+			
+			"<tr><td><strong>Delete Rule</strong> (when selected rule)</td><td>" + _bk.keyModifierName + " + BACKSPACE</td></tr>" +
+			"</table>" +
+			"<br>" +
+			"<p>For any problems please contact oracle_dmp_emea_deployments_gb_grp@oracle.com</p>";
+
+		window._bk.functions.help_button = function() {
+			alertify.alert(_bk.msg);
+		};
+
 		// Log BK Extender running
 		_bk.functions.bk_running = function() {
 			
 			setTimeout(function() {
 		
 				if (window.alertify && window.alertify.log) {
-
-					alertify.log('<h3>BlueKai Extender Running</h3>');					
-
+					alertify.log('<h3>BlueKai Extender Running</h3><p>Click <a onClick="alertify.alert(_bk.msg);">here </a>for help</p>');					
 				} else {
 					//_bk.functions.bk_running();
 				}
 			}, 500);
 		};
 		_bk.functions.bk_running();
-						
+
+
+		// Help Button
+		jQuery('button[value="reorder"]').parent().append('<li><button id="bk_Extender_help_button" onclick="_bk.functions.help_button()" class="button" name = "BK Extender Help">BK Extender Help</button></li>');
+		
+				
 		// ### BULK CATEGORY IMPORTER ###
 		
 		// FUNCTION : Begin Data Send ###
 		window._bk.functions.beginCategories = function(data) {
 
-			// CONFIG : Specify how many calls you want to allow the browser to try at once
-			var intervals = 20;	// 20 is default
-
-			// Create mapping object between category IDs and upload IDs
-			window._bk.data.category_mapping = {};
-
-			// Set Upload ID counter
-			window._bk.logs = window._bk.logs || {};
-			window._bk.logs.upload_id_counter = 0;			
-
-			// Convert CSV into JSON structure
-			window._bk.data.category_json = {};
-
-			// Grab parent category ID
-			window._bk.data.category_parent_id = jQuery('.tree-node').first().attr('title');
-
-			// Loop through CSV and create JSON Structure
-			for (var i = 0; i < data.data.length; i++) {
-				
-				for (var j = 0; j < data.data[i].length; j++) {
-
-					data.data[i][j] = data.data[i][j].replace(/\|/g,"_"); // replace '|' with something else (reserved char)
-					var cell_value = data.data[i][j]; // capture cell value					
-					window._bk.logs.upload_id_counter++ // increment upload ID
-					
-					// Handle first level
-					if (j === 0){
-
-						if(!window._bk.data.category_json[cell_value]){
-
-							var full_path = data.data[i][j]; // calculate path
-
-							window._bk.data.category_json[full_path] = {
-
-								parent_id:window._bk.data.category_parent_id,
-								upload_id:window._bk.logs.upload_id_counter.toString(),
-								name:cell_value,
-								path_name:full_path,
-								children:[]
-
-							};								
-
-						}
-
-					} else {
-
-						// Handle other levels
-						if(cell_value === ""){continue;} // skip if it's empty
-
-						// Generate parent details
-						var parent_name = data.data[i][j-1];												
-						var my_level = j;
-
-						var parent_path = [];
-						var my_path = [];
-
-						// generate path details
-						for (var k = 0; k < j+1; k++) {
-
-							my_path.push(data.data[i][k]); // generate my path
-
-							if(k != j){parent_path.push(data.data[i][k]);} // generate parent path
-
-						}
-
-						parent_path = parent_path.join('|');
-						my_path = my_path.join('|');
-
-						// Check to see if cell already added in taxonomy
-						if(window._bk.data.category_json[my_path]){continue;}
-
-						// Add to json tree						
-						window._bk.data.category_json[my_path] = {
-
-							parent_upload_id:window._bk.data.category_json[parent_path].upload_id,
-							parent_path:parent_path,
-							upload_id:window._bk.logs.upload_id_counter.toString(),
-							name:cell_value,
-							path_name:my_path,
-							children:[]
-
-						}
-
-						
-						if(window._bk.data.category_json[parent_path]){
-							window._bk.data.category_json[parent_path].children.push(my_path);
-						}
-
-					};
-					
-
-				}
-
-			}										
+			// config
+			var intervals = 50;
 
 			// 1 : CALCULATE BATCH POINTS
-			window._bk.logs.data_length = Object.keys(_bk.data.category_json).length; // how long is it?
+			window._bk.logs.data_length = data.length; // how long is it?
 			window._bk.logs.batches = Math.ceil(window._bk.logs.data_length / intervals); // how many batches to run?
 
 			// how many in last batch?
@@ -653,14 +585,8 @@
 			window._bk.logs.current_batch = 0;
 
 			// Store calls in logs
-			window._bk.logs.calls = [];
+			window._bk.logs.calls = data;
 
-			for (var myVarName in _bk.data.category_json){
-
-				window._bk.logs.calls.push(myVarName);
-
-			}
-			
 			// 2 : BEGIN SENDING DATA
 			window._bk.functions.callBatcher(); // send all data to API	
 
@@ -669,7 +595,7 @@
 		
 		// FUNCTION : Call Batcher ###		
 		window._bk.functions.callBatcher = function() {
-			
+
 			var data = window._bk.logs.calls;
 
 			// Declare vars
@@ -685,7 +611,6 @@
 				j++;
 			}
 
-
 			// Log calls which are being fired
 			alertify.maxLogItems(1).delay(0).log("Importing Rules " + _bk.logs.batch_bucket_start + " to " + _bk.logs.batch_bucket_end + " (of " + _bk.logs.data_length + ")");
 
@@ -695,98 +620,33 @@
 				// declare vars
 				var call_number = window._bk.logs.call_number = window._bk.logs.last_import.calls + 1;
 				var current_call = current_calls[i];
+				window._bk.functions.callDispatcher(current_call);
 
-				// Check if parent ID exists
-				if(_bk.data.category_json[current_call].parent_id){
-					
-					window._bk.functions.callDispatcher(current_call); // Fire call
-
-				} else {
-
-					//setTimeout(function(){window._bk.functions.callDispatcher(current_call);}, 3000);} // Otherwise wait 3 seconds
-
-					// FUNCION : Looping function
-					window._bk.functions.looper = function(call_to_loop) {
-
-						setTimeout(function() {
-						
-							// add loop counter to set a max
-							window._bk.logs.loop_counter = window._bk.logs.loop_counter || {}; // calculate current loop									
-							window._bk.logs.loop_counter[call_to_loop] = window._bk.logs.loop_counter[call_to_loop] || 0;
-							window._bk.logs.loop_counter[call_to_loop]++;
-												
-							window._bk.logs.loop_max = 50; // set max loops to run
-							window._bk.logs.loop_length = 3000; // set timeout
-							
-							if(_bk.data.category_json[call_to_loop].parent_id){
-
-								window._bk.functions.callDispatcher(call_to_loop); // Fire call
-
-							} else if (window._bk.logs.loop_counter[call_to_loop] < window._bk.logs.loop_max) {
-
-								console.log('Self Category | RETRYING (in ' + (window._bk.logs.loop_length / 1000) +  's)| no parent ID available for "' +  call_to_loop +'"');
-								
-								// Add note to say looping finished if hit loop limit
-
-								window._bk.functions.looper(call_to_loop); // re-run function if you want it to be a loop (set an 'if' condition)}
-
-							} else {
-
-								console.log('Self Category | GIVING UP | no parent ID available for "' +  call_to_loop +'" and maximum loops exceeded');
-							}
-
-						}, window._bk.logs.loop_length);
-					}
-
-					// Begin Loop
-					window._bk.functions.looper(current_call);
-					
-					}
-
-				}
+			}
 
 		};
-		
+
 		
 		// FUNCTION : Call Dispatcher ###
 		window._bk.functions.callDispatcher = function(data) {
 
-			var pathName = data;
-
-			var data = {
-				"status": "active",
-				"parent_id": _bk.data.category_json[data].parent_id,
-				"name": _bk.data.category_json[data].name,
-				"description": "-",  
-				"notes": "Created via Services Bulk Category Adder", // Created via Services Bulk Category Adder
-				"analytics_excluded": "0",
-				"mutex_children": "0",
-				"navigation_only": "0"
-			};
-
+			var ruleName = data.name;
 			var data = JSON.stringify(data);
+			
 
 			// send data to API
 			jQuery.ajax({
 				type: "POST",
-				url: "https://publisher.bluekai.com/classification_categories",
+				url: "https://publisher.bluekai.com/classification_rules",
 				data: data,
 				dataType: "json",
 				//success: success() // build throttling
 				contentType: "application/json"
 
-			}).success(function(returnData) {
+			}).success(function() {
 
 				// Success
-				
-				// Add parent_id to children
-				for (var i = 0; i < _bk.data.category_json[pathName].children.length; i++) {
-				
-					_bk.data.category_json[_bk.data.category_json[pathName].children[i]].parent_id = returnData.id; 
-
-				}
-
-				console.log("Self Category | SUCCESS | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.data_length + " | " + pathName);
+				console.log("Self Classification | SUCCESS | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.last_import.length + " | " + ruleName);
 				_bk.logs.last_import.success++;
 				_bk.logs.last_import.calls++;
 				_bk.functions.batch_api_checker(); // check if API call can be made
@@ -795,8 +655,8 @@
 
 				// Fail
 
-				// ADD ERROR DETAILS					
-				console.log("Self Category | FAIL | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.data_length + " | " + pathName + " | " + err.responseText);
+				// ADD ERROR DETAILS		
+				console.log("Self Classification | FAIL | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.last_import.length + " | " + ruleName + " | " + err.responseText);
 				_bk.logs.last_import.fail++;
 				_bk.logs.last_import.calls++;
 				_bk.functions.batch_api_checker(); // check if API call can be made
@@ -804,7 +664,7 @@
 			});
 
 
-		};		
+		};
 		
 		// FUNCTION : BATCH API CHECKER ###		
 		_bk.functions.batch_api_checker = function() {
@@ -826,11 +686,11 @@
 					
 					if (ratio !== "100.00%") {
 
-						alertify.error("Failures : " + ratio + " success rate (" + _bk.logs.last_import.fail + " fails out of " + _bk.logs.data_length + " - see console for details)");
+						alertify.error("Failures : " + ratio + " success rate (" + _bk.logs.last_import.fail + " fails out of " + _bk.logs.last_import.calls + " - see console for details)");
 
 					} else {
 
-						alertify.success("Success : " + ratio + " success rate (" + _bk.logs.last_import.fail + " fails out of " + _bk.logs.data_length + " - see console for details)");
+						alertify.success("Success : " + ratio + " success rate (" + _bk.logs.last_import.fail + " fails out of " + _bk.logs.last_import.calls + " - see console for details)");
 
 					}
 
@@ -847,19 +707,15 @@
 
 			window._bk.functions = window._bk.functions || {};
 			window._bk.functions.file_process = function(data) {
-			
+
 			Papa.parse(event.target.files[0], {
 
 				complete: function(results) {
-					console.log("BK LOG : Papa has processed the csv below...");
 					console.log(results);
-										
-					// Move colum headers somewhere else
-					window._bk.data = window._bk.data || {};
-					window._bk.data.column_headers = results.data[0];
+					debugger;
 
-					results.data.shift();				
-					
+					// hidden code
+					/*
 					// Reset log data
 					window._bk.logs.last_import = {
 						success: 0,
@@ -867,10 +723,38 @@
 						calls: 0
 					};
 
-					// Send Data for processing
-					window._bk.functions.beginCategories(results);
-					
-					alertify.success("CSV accepted : processing file");
+					// LOOP THROUGH JSON DATA AND SEND
+					var exportData = "[" + val + "]";
+
+					// Catch syntax errors in JSON
+					try {
+
+						var exportDataParsed = JSON.parse(exportData);
+						_bk.logs.last_import.length = exportDataParsed.length;
+
+					} catch (err) {
+
+						alertify.error("JSON data not correctly formatted : see console");
+						console.log("Self Classification | FAIL : JSON not formatted correctly | " + err);
+
+					}
+
+
+					// Send Data
+					window._bk.functions.beginClassification(exportDataParsed);
+
+					/*
+					for (var i = 0; i < exportDataParsed.length; i++) {
+
+						// Send Data
+						window._bk.functions.createClassificationRulePhint(exportDataParsed[i]);
+
+					}*/
+					//*/
+
+					alertify.success("Processed File");
+
+
 
 					}
 				});
@@ -878,16 +762,8 @@
 
 			// TO CHANGE : 
 			var message = "<h2>Upload your CSV of NEW categories</h2>" +
-				"<p> (1) <strong><a target='_blank' href='https://drive.google.com/open?id=0B73sA1rCbNo7aE16eTB2YzJrNW8'>Download this template</a></strong> and fill out your category structure</p>" +
-				"<p> (2) Upload it to create your new categories</p>" +
-				"<p> <strong>NOTES</strong> </p>" +				
-				"<li> BE VERY CAREFUL AS ONCE YOU HAVE CREATED THESE CATEGORIES YOU CANNOT DELETE THEM! </li>" +
-				"<br>" +
-				"<li>Do NOT use duplicate node names at the same level! </li>" +
-				"<br>" +
-				"<li>To upload the same file without refreshing the page, ensure you upload a new version of your file (saving it again is enough) </li>" +
-				"<br>" +
-				"<li>If you create the wrong categories, use the 'Edit>Bulk Update' feature </li>";
+				"<p> Click <a target='_blank' href='https://gist.github.com/rajtastic/2de2822a13b2e69189b0a4550e757d9f'>here</a> for correct format </p>" +
+				"<p> Note : there may be a delay before the import begins if you are importing many rules (e.g. over 100) </p>";
 
 			alertify
 				.okBtn("Choose your file")
@@ -899,7 +775,7 @@
 					// it here.
 					ev.preventDefault();
 
-					jQuery('body').append('<input type="file" accept=".csv" style="hidden" id="myFile">');
+					jQuery('body').append('<input type="file" style="hidden" id="myFile">');
 					jQuery('#myFile').on('change', window._bk.functions.file_process);
 					jQuery('#myFile').click();
 
@@ -917,7 +793,7 @@
 
 
 		// ADD BUTTON TO UI ###
-		jQuery('button[value="reorder"]').parent().append('<li><button id="bk_add_bulk_categories" onclick="_bk.functions.bk_add_bulk_categories_prompt()" class="button" name = "Add Bulk Categories">Add Bulk Categories (beta)</button></li>');		
+		jQuery('button[value="reorder"]').parent().append('<li><button id="bk_add_bulk_categories" onclick="_bk.functions.bk_add_bulk_categories_prompt()" class="button" name = "Add Bulk Categories">Add Bulk Categories</button></li>');		
 
 	}
 
