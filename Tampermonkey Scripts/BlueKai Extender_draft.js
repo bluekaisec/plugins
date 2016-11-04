@@ -349,7 +349,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 			}).success(function() {
 
 				// Success
-				console.log("Self Classification | SUCCESS | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.last_import.length + " | " + ruleName);
+				console.log("Self Classification | RULES | SUCCESS | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.last_import.length + " | " + ruleName);
 				_bk.logs.last_import.success++;
 				_bk.logs.last_import.calls++;
 				_bk.functions.batch_api_checker(); // check if API call can be made
@@ -359,7 +359,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 				// Fail
 
 				// ADD ERROR DETAILS		
-				console.log("Self Classification | FAIL | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.last_import.length + " | " + ruleName + " | " + err.responseText);
+				console.log("Self Classification | RULES | FAIL | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.last_import.length + " | " + ruleName + " | " + err.responseText);
 				_bk.logs.last_import.fail++;
 				_bk.logs.last_import.calls++;
 				_bk.functions.batch_api_checker(); // check if API call can be made
@@ -438,7 +438,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 					} catch (err) {
 
 						alertify.error("JSON data not correctly formatted : see console");
-						console.log("Self Classification | FAIL : JSON not formatted correctly | " + err);
+						console.log("Self Classification | RULES | FAIL : JSON not formatted correctly | " + err);
 
 					}
 
@@ -502,8 +502,8 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 		// ### BULK CATEGORY IMPORTER ###
 		
 		// FUNCTION : Begin Data Send ###
-		window._bk.functions.beginCategories = function(categories,descriptions,notes,rules) {
-		
+		window._bk.functions.beginCategories = function(categories,descriptions,notes,rules,partner_id) {
+				
 			// CONFIG : Specify how many calls you want to allow the browser to try at once
 			var intervals = 20;	// 20 is default
 
@@ -528,12 +528,64 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 					categories.data[i][j] = categories.data[i][j].replace(/\|/g,"_"); // replace '|' with something else (reserved char)
 					var cell_value = categories.data[i][j]; // capture cell value					
 					window._bk.logs.upload_id_counter++ // increment upload ID
-										
+									
+					// FUNCTION : Rule Handler
+					_bk.functions.rule_handler = function(rule_array,full_path){
+
+							// If we have rules
+							if(rules[0].length > 0){
+
+								var rule = {};							
+								rule.partner_id = partner_id; // UPDATE 
+								rule.name = [full_path + " : "]; 
+								rule.type = "phint";
+								rule.site_ids = [];
+								rule.category_ids = [];
+								rule.phints = []; // UPDATE 							
+
+								// Generate rule name								
+								var phint_rule = {}; // first rule
+
+								for (var j = 0; j < rules[i].length; j++) {
+
+									if(!rules[i][j]){break;}; // stop if there are no rules
+
+									// Add data to rule
+									if(_bk.data.rule_headers[j] === "rule_key"){
+
+										phint_rule.key = rules[i][j];
+
+									} else if (_bk.data.rule_headers[j] === "rule_operator"){
+
+										phint_rule.operator = rules[i][j];
+
+									} else if (_bk.data.rule_headers[j] === "rule_value"){
+
+										phint_rule.value = rules[i][j];
+										rule.phints.push(phint_rule); // Push into rules
+
+									}
+								
+									rule.name.push(rules[i][j]); 
+									
+									if((((j+1)/3).toString().indexOf('.') === -1) && rules[i][j+1]) {
+										rule.name.push("AND");
+										phint_rule = {};
+									}
+
+								}
+								
+								rule.name = rule.name.join(' ');
+								
+								return rule;
+
+							}
+
+					}
+
 					// Handle first level
 					if (j === 0){
-
-						debugger;
-
+						
 						if(!window._bk.data.category_json[cell_value]){
 
 							var full_path = categories.data[i][j]; // calculate path							
@@ -546,16 +598,35 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 								path_name:full_path,
 								children:[],
 								note:notes[i],
-								description:descriptions[i]
+								description:descriptions[i],
+								rules:[]
 
-							};								
+							};
 
-						}
+							// Add in rules if necessary
+							window._bk.data.category_json[full_path].rules.push(_bk.functions.rule_handler(rules[i],full_path));
+							
+						} 
 
 					} else {
-
+					
 						// Handle other levels
 						if(cell_value === ""){continue;} // skip if it's empty
+
+						// FUNCTION : Calculate if last item in array
+						window._bk.functions.clean_array_length = function(array){
+ 						  	
+							var return_array = [];
+
+ 						  	for (var i = 0; i < array.length; i++) {
+ 						  		
+ 						  		if(array[i]){return_array.push(array[i]);}
+
+ 						  	}
+
+ 						  	return return_array.length;
+
+						}
 
 						// Generate parent details
 						var parent_name = categories.data[i][j-1];												
@@ -576,11 +647,16 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 						parent_path = parent_path.join('|');
 						my_path = my_path.join('|');
 												
-						// Check to see if cell already added in taxonomy
-
-						debugger;
-
-						if(window._bk.data.category_json[my_path]){continue;}
+						// Check to see if cell already added in taxonomy						
+						if(window._bk.data.category_json[my_path]){
+							
+							// Add in rules if necessary							
+							if((j +1) === window._bk.functions.clean_array_length(categories.data[i])){
+								
+								window._bk.data.category_json[my_path].rules.push(_bk.functions.rule_handler(rules[i],my_path));							
+							}
+							continue;
+						}
 											
 						// Add to json tree						
 						window._bk.data.category_json[my_path] = {
@@ -592,13 +668,22 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 							path_name:my_path,
 							children:[],
 							note:notes[i],
-							description:descriptions[i]
+							description:descriptions[i],
+							rules:[]
 
 						}
 
-						
+						// Add in rules if necessary						
+						if((j +1) === window._bk.functions.clean_array_length(categories.data[i])){
+								
+								window._bk.data.category_json[my_path].rules.push(_bk.functions.rule_handler(rules[i],my_path));							
+						}
+
+						// Pass in parent path
 						if(window._bk.data.category_json[parent_path]){
+
 							window._bk.data.category_json[parent_path].children.push(my_path);
+
 						}
 
 					};
@@ -607,7 +692,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 				}
 
 			}										
-
+			
 			// 1 : CALCULATE BATCH POINTS
 			window._bk.logs.data_length = Object.keys(_bk.data.category_json).length; // how long is it?
 			window._bk.logs.batches = Math.ceil(window._bk.logs.data_length / intervals); // how many batches to run?
@@ -743,7 +828,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 							} else if (window._bk.logs.loop_counter[call_to_loop] < window._bk.logs.loop_max) {
 
-								console.log('Self Category | RETRYING (in ' + (window._bk.logs.loop_length / 1000) +  's)| no parent ID available for "' +  call_to_loop +'"');
+								console.log('Self Classification | CATEGORIES | RETRYING (in ' + (window._bk.logs.loop_length / 1000) +  's)| no parent ID available for "' +  call_to_loop +'"');
 								
 								// Add note to say looping finished if hit loop limit
 
@@ -751,7 +836,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 							} else {
 
-								console.log('Self Category | GIVING UP | no parent ID available for "' +  call_to_loop +'" and maximum loops exceeded');
+								console.log('Self CLASSIFICATION | CATEGORIES |GIVING UP | no parent ID available for "' +  call_to_loop +'" and maximum loops exceeded');
 							}
 
 						}, window._bk.logs.loop_length);
@@ -769,7 +854,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 		
 		// FUNCTION : Call Dispatcher ###
 		window._bk.functions.callDispatcher = function(data) {
-
+			
 			var pathName = data;
 
 			var data = {
@@ -805,17 +890,62 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 				}
 
-				console.log("Self Category | SUCCESS | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.data_length + " | " + pathName);
-				_bk.logs.last_import.success++;
-				_bk.logs.last_import.calls++;
-				_bk.functions.batch_api_checker(); // check if API call can be made
+				 _bk.data.category_json[pathName].id=returnData.id; // Add category ID				
+				
+				if(_bk.data.category_json[pathName].rules.length[0]){
+
+					console.log("Self Classification | CATEGORIES | SUCCESS | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.data_length + " | " + pathName);
+					_bk.logs.last_import.success++;
+					_bk.logs.last_import.calls++;
+					_bk.functions.batch_api_checker(); // check if API call can be made
+					
+					// Push Category ID into rule and create rule
+
+					// START
+					var category_id = returnData.id;				
+
+					for (var i = 0; i < _bk.data.category_json[pathName].rules.length; i++) {
+						
+						_bk.data.category_json[pathName].rules[i].category_ids.push(category_id); // Add category ID to rules
+						var rule_data = JSON.stringify(_bk.data.category_json[pathName].rules[i]); 
+						var rule_name = _bk.data.category_json[pathName].rules[i].name;
+
+						// Trigger call to add rule
+
+						jQuery.ajax({
+							type: "POST",
+							url: "https://publisher.bluekai.com/classification_rules",
+							data: rule_data,
+							dataType: "json",
+							//success: success() // build throttling
+							contentType: "application/json"
+
+						}).success(function(returnData) {
+							
+							// Success
+							console.log("Self Classification | RULES | SUCCESS | " + returnData.name);						
+
+						}).fail(function(err) {
+
+							// Fail
+							
+							// ADD ERROR DETAILS		
+							console.log("Self Classification | RULES | FAIL | " + rule_name);						
+							
+
+						});
+						
+					}
+
+				}
+				// END
 
 			}).fail(function(err) {
 
 				// Fail
 
 				// ADD ERROR DETAILS					
-				console.log("Self Category | FAIL | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.data_length + " | " + pathName + " | " + err.responseText);
+				console.log("Self Classification | CATEGORIES | FAIL | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.data_length + " | " + pathName + " | " + err.responseText);
 				_bk.logs.last_import.fail++;
 				_bk.logs.last_import.calls++;
 				_bk.functions.batch_api_checker(); // check if API call can be made
@@ -881,7 +1011,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 					results.data.shift();				
 					
 					// Split into categories/description/notes/rules
-										
+														
 					// Create notes
 					var notes = [];
 
@@ -899,11 +1029,11 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 						
 						var note = (results.data[i][notes_column]) ? results.data[i][notes_column] : "-"; //  Sanitise note value
 						notes.push(note); // Create notes column
-						results.data[i].splice(notes_column,1); // Remove notes from results						
+						if(typeof notes_column !== "undefined"){results.data[i].splice(notes_column,1);} // Remove notes from results						
 						
 					}
 
-					window._bk.data.column_headers.splice(notes_column,1); // Remove notes from column headers
+					if(typeof notes_column !== "undefined"){window._bk.data.column_headers.splice(notes_column,1);} // Remove notes from column headers
 
 					// Create Description Column
 					var descriptions = [];
@@ -922,11 +1052,39 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 						
 						var description = (results.data[i][description_column]) ? results.data[i][description_column] : "-"; //  Sanitise description value
 						descriptions.push(description); // Create description column
-						results.data[i].splice(description_column,1); // Remove description from results
+						if(typeof description_column !== "undefined"){results.data[i].splice(description_column,1);} // Remove description from results
 												
 					}
 
-					window._bk.data.column_headers.splice(description_column,1); // Remove description from column headers
+					if(typeof description_column !== "undefined"){window._bk.data.column_headers.splice(description_column,1);} // Remove description from column headers
+
+					// Calculate Partner ID
+					var partner_id = [];
+
+					for (var i = 0; i < window._bk.data.column_headers.length; i++) {
+												
+						if(window._bk.data.column_headers[i] === "Partner ID (only required for rules)"){
+							
+							var partner_column = i; // calculate description column
+
+						}
+					
+					}
+
+					for (var i = 0; i < results.data.length; i++) {
+						
+						var partner = (results.data[i][partner_column]) ? results.data[i][partner_column] : "-"; //  Sanitise description value
+						partner_id.push(partner); // Create partner column
+
+
+
+						if(typeof partner_column !== "undefined"){results.data[i].splice(partner_column,1);} // Remove Partner ID from results
+												
+					}
+
+					if(typeof partner_column !== "undefined"){window._bk.data.column_headers.splice(partner_column,1);} // Remove description from column headers
+					var partner_id = partner_id[0]; // Set partner ID
+
 
 					// Create rules columns
 					var rules = [];
@@ -945,11 +1103,13 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 										
 					for (var i = 0; i < results.data.length; i++) {
 						
-						var rule = results.data[i].splice(rule_column_start,rule_column_diff); // Remove rules and save
-						
+						var rule = results.data[i].splice(rule_column_start,rule_column_diff); // Remove rules and save												
 						rules.push(rule); // Create description column						
 
 					}
+
+
+					_bk.data.rule_headers = _bk.data.column_headers.splice(rule_column_start,rule_column_diff); // Remove rules from column headers and save
 				
 					// Reset log data
 					window._bk.logs.last_import = {
@@ -961,7 +1121,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 
 					// Send Data for processing
-					window._bk.functions.beginCategories(results,descriptions,notes,rules);
+					window._bk.functions.beginCategories(results,descriptions,notes,rules,partner_id);
 					
 					alertify.success("CSV accepted : processing file");
 
@@ -1050,7 +1210,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 					// code to export
 					alertify.delay(3000).success("Exporting CSV...");
-					console.log("Self Classification | ACTION | Exporting Categories");
+					console.log("Self Classification | CATEGORY EXPORT | ACTION | Exporting Categories");
 
 					// Create CSV array
 					var csv_export = [];
@@ -1097,13 +1257,13 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 					window._bk.category_ids[category_id]["parent_id"] = parent_id;
 					window._bk.category_ids[category_id]["full_category_path"] = full_category_path;
 
-					console.log("Self Classification | SUCCESS | Child Categories Received from parent node : id=" + category_id + " name=" + category_name);
+					console.log("Self Classification | CATEGORY EXPORT | SUCCESS | Child Categories Received from parent node : id=" + category_id + " name=" + category_name);
 
 					// if this has child categories, pull them all
 					if (data[i].leaf === false) {
 
 
-						console.log("Self Classification | ACTION | Pulling initial additional child categories for node : id=" + data[i].id + " name=" + data[i].name);
+						console.log("Self Classification | CATEGORY EXPORT | ACTION | Pulling initial additional child categories for node : id=" + data[i].id + " name=" + data[i].name);
 						window._bk.functions.category_grabber(data[i].id);
 
 					}
@@ -1114,7 +1274,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 				// Fail
 
 				// ADD ERROR DETAILS		
-				console.log("Self Classification | FAIL | " + err.responseText);
+				console.log("Self Classification | CATEGORY EXPORT | FAIL | " + err.responseText);
 
 			});
 
@@ -1127,7 +1287,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 		// BEGIN SCRAPING
 		window._bk.functions.category_grabber_start = function() {
 
-			console.log("Self Classification | ACTION | Pulling initial child categories");
+			console.log("Self Classification | CATEGORY EXPORT | ACTION | Pulling initial child categories");
 
 			alertify.maxLogItems(1).delay(0).log("Gathering Categories...");
 
