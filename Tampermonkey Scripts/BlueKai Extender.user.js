@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BlueKai Extender
 // @namespace    http://tampermonkey.net/
-// @version      1.3
+// @version      1.4
 // @description  Extending BlueKai UI to improve
 // @author       Roshan Gonsalkorale (oracle_dmp_emea_deployments_gb_grp@oracle.com)
 // @match        https://*.bluekai.com/*
@@ -492,8 +492,8 @@
 		// ### BULK CATEGORY IMPORTER ###
 		
 		// FUNCTION : Begin Data Send ###
-		window._bk.functions.beginCategories = function(data) {
-
+		window._bk.functions.beginCategories = function(categories,descriptions,notes,rules) {
+		
 			// CONFIG : Specify how many calls you want to allow the browser to try at once
 			var intervals = 20;	// 20 is default
 
@@ -511,20 +511,20 @@
 			window._bk.data.category_parent_id = jQuery('.tree-node').first().attr('title');
 
 			// Loop through CSV and create JSON Structure
-			for (var i = 0; i < data.data.length; i++) {
+			for (var i = 0; i < categories.data.length; i++) {
 				
-				for (var j = 0; j < data.data[i].length; j++) {
+				for (var j = 0; j < categories.data[i].length; j++) {
 
-					data.data[i][j] = data.data[i][j].replace(/\|/g,"_"); // replace '|' with something else (reserved char)
-					var cell_value = data.data[i][j]; // capture cell value					
+					categories.data[i][j] = categories.data[i][j].replace(/\|/g,"_"); // replace '|' with something else (reserved char)
+					var cell_value = categories.data[i][j]; // capture cell value					
 					window._bk.logs.upload_id_counter++ // increment upload ID
-					
+										
 					// Handle first level
 					if (j === 0){
 
 						if(!window._bk.data.category_json[cell_value]){
 
-							var full_path = data.data[i][j]; // calculate path
+							var full_path = categories.data[i][j]; // calculate path							
 
 							window._bk.data.category_json[full_path] = {
 
@@ -532,7 +532,9 @@
 								upload_id:window._bk.logs.upload_id_counter.toString(),
 								name:cell_value,
 								path_name:full_path,
-								children:[]
+								children:[],
+								note:notes[i],
+								description:descriptions[i]
 
 							};								
 
@@ -544,7 +546,7 @@
 						if(cell_value === ""){continue;} // skip if it's empty
 
 						// Generate parent details
-						var parent_name = data.data[i][j-1];												
+						var parent_name = categories.data[i][j-1];												
 						var my_level = j;
 
 						var parent_path = [];
@@ -553,17 +555,19 @@
 						// generate path details
 						for (var k = 0; k < j+1; k++) {
 
-							my_path.push(data.data[i][k]); // generate my path
+							my_path.push(categories.data[i][k]); // generate my path
 
-							if(k != j){parent_path.push(data.data[i][k]);} // generate parent path
+							if(k != j){parent_path.push(categories.data[i][k]);} // generate parent path
 
 						}
 
 						parent_path = parent_path.join('|');
 						my_path = my_path.join('|');
-
+												
 						// Check to see if cell already added in taxonomy
 						if(window._bk.data.category_json[my_path]){continue;}
+						
+
 
 						// Add to json tree						
 						window._bk.data.category_json[my_path] = {
@@ -573,7 +577,9 @@
 							upload_id:window._bk.logs.upload_id_counter.toString(),
 							name:cell_value,
 							path_name:my_path,
-							children:[]
+							children:[],
+							note:notes[i],
+							description:descriptions[i]
 
 						}
 
@@ -757,8 +763,8 @@
 				"status": "active",
 				"parent_id": _bk.data.category_json[data].parent_id,
 				"name": _bk.data.category_json[data].name,
-				"description": "-",  
-				"notes": "Created via Services Bulk Category Adder", // Created via Services Bulk Category Adder
+				"description": _bk.data.category_json[data].description,  
+				"notes": _bk.data.category_json[data].note,  
 				"analytics_excluded": "0",
 				"mutex_children": "0",
 				"navigation_only": "0"
@@ -851,6 +857,7 @@
 			Papa.parse(event.target.files[0], {
 
 				complete: function(results) {
+					
 					console.log("BK LOG : Papa has processed the csv below...");
 					console.log(results);
 										
@@ -860,6 +867,77 @@
 
 					results.data.shift();				
 					
+					// Split into categories/description/notes/rules
+										
+					// Create notes
+					var notes = [];
+
+					for (var i = 0; i < window._bk.data.column_headers.length; i++) {
+						
+						if(window._bk.data.column_headers[i] === "Notes"){
+							
+							var notes_column = i; // calculate notes column
+
+						}											
+					
+					}
+					
+					for (var i = 0; i < results.data.length; i++) {
+						
+						var note = (results.data[i][notes_column]) ? results.data[i][notes_column] : "-"; //  Sanitise note value
+						notes.push(note); // Create notes column
+						results.data[i].splice(notes_column,1); // Remove notes from results						
+						
+					}
+
+					window._bk.data.column_headers.splice(notes_column,1); // Remove notes from column headers
+
+					// Create Description Column
+					var descriptions = [];
+
+					for (var i = 0; i < window._bk.data.column_headers.length; i++) {
+												
+						if(window._bk.data.column_headers[i] === "Description"){
+							
+							var description_column = i; // calculate description column
+
+						}
+					
+					}
+
+					for (var i = 0; i < results.data.length; i++) {
+						
+						var description = (results.data[i][description_column]) ? results.data[i][description_column] : "-"; //  Sanitise description value
+						descriptions.push(description); // Create description column
+						results.data[i].splice(description_column,1); // Remove description from results
+												
+					}
+
+					window._bk.data.column_headers.splice(description_column,1); // Remove description from column headers
+
+					// Create rules columns
+					var rules = [];
+
+					for (var i = 0; i < window._bk.data.column_headers.length; i++) {
+												
+						if(window._bk.data.column_headers[i] === "rule_key"){
+							
+							var rule_column_start = i; // calculate first rule column
+							var rule_column_end = window._bk.data.column_headers.length -1; // calculate last rule column
+							var rule_column_diff = rule_column_end - rule_column_start +1; // calculate difference in columns
+							break;
+						}
+					
+					}
+										
+					for (var i = 0; i < results.data.length; i++) {
+						
+						var rule = results.data[i].splice(rule_column_start,rule_column_diff); // Remove rules and save
+						
+						rules.push(rule); // Create description column						
+
+					}
+				
 					// Reset log data
 					window._bk.logs.last_import = {
 						success: 0,
@@ -867,8 +945,10 @@
 						calls: 0
 					};
 
+
+
 					// Send Data for processing
-					window._bk.functions.beginCategories(results);
+					window._bk.functions.beginCategories(results,descriptions,notes,rules);
 					
 					alertify.success("CSV accepted : processing file");
 
