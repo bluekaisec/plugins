@@ -221,8 +221,11 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 		// FUNCTION : Begin Data Send ###
 		window._bk.functions.beginClassification = function(data) {
 
+
+
 			// config
 			var intervals = 50;
+			_bk.logs.call_number = 0; //reset logs
 
 			// 1 : CALCULATE BATCH POINTS
 			window._bk.logs.data_length = data.length; // how long is it?
@@ -504,8 +507,12 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 		// FUNCTION : Begin Data Send ###
 		window._bk.functions.beginCategories = function(categories,descriptions,notes,rules,partner_id) {
 				
+
 			// CONFIG : Specify how many calls you want to allow the browser to try at once
 			var intervals = 20;	// 20 is default
+
+
+			_bk.logs.call_number = 0; // kill logging
 
 			// Create mapping object between category IDs and upload IDs
 			window._bk.data.category_mapping = {};
@@ -892,13 +899,14 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 				 _bk.data.category_json[pathName].id=returnData.id; // Add category ID				
 				
-				if(_bk.data.category_json[pathName].rules.length[0]){
+				
+				console.log("Self Classification | CATEGORIES | SUCCESS | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.data_length + " | " + pathName);
+				_bk.logs.last_import.success++;
+				_bk.logs.last_import.calls++;
+				_bk.functions.batch_api_checker(); // check if API call can be made
+				
+				if(_bk.data.category_json[pathName].rules[0]){
 
-					console.log("Self Classification | CATEGORIES | SUCCESS | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.data_length + " | " + pathName);
-					_bk.logs.last_import.success++;
-					_bk.logs.last_import.calls++;
-					_bk.functions.batch_api_checker(); // check if API call can be made
-					
 					// Push Category ID into rule and create rule
 
 					// START
@@ -928,9 +936,9 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 						}).fail(function(err) {
 
 							// Fail
-							
+
 							// ADD ERROR DETAILS		
-							console.log("Self Classification | RULES | FAIL | " + rule_name);						
+							console.log("Self Classification | RULES | FAIL | " + rule_name + "|" + err.responseText);						
 							
 
 						});
@@ -1117,8 +1125,6 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 						fail: 0,
 						calls: 0
 					};
-
-
 
 					// Send Data for processing
 					window._bk.functions.beginCategories(results,descriptions,notes,rules,partner_id);
