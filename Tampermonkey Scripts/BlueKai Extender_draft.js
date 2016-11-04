@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BlueKai Extender
 // @namespace    http://tampermonkey.net/
-// @version      1.4
+// @version      1.5
 // @description  Extending BlueKai UI to improve
 // @author       Roshan Gonsalkorale (oracle_dmp_emea_deployments_gb_grp@oracle.com)
 // @match        https://*.bluekai.com/*
@@ -10,6 +10,16 @@
 // @grant        none
 
 // ==/UserScript==
+
+/* RELEASE NOTES
+
+v1.5 (roshan.gonsalkorale@oracle.com)
+- Added rule import too
+
+v1.4 (roshan.gonsalkorale@oracle.com)
+- Added note and description import to bulk category adder
+
+*/
 
 (function() {
 	'use strict';
@@ -522,6 +532,8 @@
 					// Handle first level
 					if (j === 0){
 
+						debugger;
+
 						if(!window._bk.data.category_json[cell_value]){
 
 							var full_path = categories.data[i][j]; // calculate path							
@@ -565,10 +577,11 @@
 						my_path = my_path.join('|');
 												
 						// Check to see if cell already added in taxonomy
+
+						debugger;
+
 						if(window._bk.data.category_json[my_path]){continue;}
-						
-
-
+											
 						// Add to json tree						
 						window._bk.data.category_json[my_path] = {
 
