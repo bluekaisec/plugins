@@ -538,9 +538,9 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 									
 					// FUNCTION : Rule Handler
 					_bk.functions.rule_handler = function(rule_array,full_path){
-							
+														
 							// If we have rules
-							if(rules[0]){
+							if(rule_array[0]){
 
 								var rule = {};							
 								rule.partner_id = partner_id; // UPDATE 
@@ -918,6 +918,9 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 						var rule_data = JSON.stringify(_bk.data.category_json[pathName].rules[i]); 
 						var rule_name = _bk.data.category_json[pathName].rules[i].name;
 
+						var call_number = _bk.logs.last_import.calls + 1;
+						var number_of_calls = _bk.logs.data_length;
+
 						// Trigger call to add rule
 
 						jQuery.ajax({
@@ -931,14 +934,16 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 						}).success(function(returnData) {
 							
 							// Success
-							console.log("Self Classification | RULES | SUCCESS | " + returnData.name);						
-
-						}).fail(function(err) {
+							
+							console.log("Self Classification | RULES | SUCCESS | " + call_number + "/" + number_of_calls + " | " + returnData.name);						
+							
+						}).fail(function(err,returnData) {
 
 							// Fail
 
 							// ADD ERROR DETAILS		
-							console.log("Self Classification | RULES | FAIL | " + rule_name + "|" + err.responseText);						
+							
+							console.log("Self Classification | RULES | FAIL | " + call_number + "/" + number_of_calls + " | rule name not available |" + err.responseText);						
 							
 
 						});
