@@ -798,7 +798,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 
 			// Log calls which are being fired
-			alertify.maxLogItems(1).delay(0).log("Importing Rules " + _bk.logs.batch_bucket_start + " to " + _bk.logs.batch_bucket_end + " (of " + _bk.logs.data_length + ")");
+			alertify.maxLogItems(1).delay(0).log("Importing Categories " + _bk.logs.batch_bucket_start + " to " + _bk.logs.batch_bucket_end + " (of " + _bk.logs.data_length + ")");
 
 			// Call API with current batch
 			for (var i = 0; i < current_calls.length; i++) {
