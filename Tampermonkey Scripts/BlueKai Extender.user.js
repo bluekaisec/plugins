@@ -538,9 +538,9 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 									
 					// FUNCTION : Rule Handler
 					_bk.functions.rule_handler = function(rule_array,full_path){
-
+							
 							// If we have rules
-							if(rules[0].length > 0){
+							if(rules[0]){
 
 								var rule = {};							
 								rule.partner_id = partner_id; // UPDATE 
@@ -904,7 +904,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 				_bk.logs.last_import.success++;
 				_bk.logs.last_import.calls++;
 				_bk.functions.batch_api_checker(); // check if API call can be made
-				
+								
 				if(_bk.data.category_json[pathName].rules[0]){
 
 					// Push Category ID into rule and create rule
