@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BlueKai Extender
 // @namespace    http://tampermonkey.net/
-// @version      1.5
+// @version      1.51
 // @description  Extending BlueKai UI to improve
 // @author       Roshan Gonsalkorale (oracle_dmp_emea_deployments_gb_grp@oracle.com)
 // @match        https://*.bluekai.com/*
@@ -12,6 +12,10 @@
 // ==/UserScript==
 
 /* RELEASE NOTES
+
+v1.51 (roshan.gonsalkorale@oracle.com)
+- Adding warning for bulk category importer
+
 
 v1.5 (roshan.gonsalkorale@oracle.com)
 - Added rule import too
@@ -1144,7 +1148,9 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 			var message = "<h2>Upload your CSV of NEW categories/rules</h2>" +
 				"<p> (1) <strong><a target='_blank' href='https://drive.google.com/open?id=0B73sA1rCbNo7aE16eTB2YzJrNW8'>Download this template</a></strong> and fill out your category/rule structure</p>" +
 				"<p> (2) Upload it to create your new categories/rules</p>" +
-				"<p> <strong>NOTES</strong> </p>" +				
+				"<p> <strong>IMPORTANT NOTES!!!</strong> </p>" +				
+				"<li> CHECK AUDIENCE BUILDER TO SEE IF YOUR CATEGORIES ARE SELECTABLE (if not, use <a target='_blank' href='https://gist.github.com/roshanbluekai/353a3644d6b85e9bd69464390ee4d5f3'>this fix</a>) </li>" +
+				"<br>" +
 				"<li> BE VERY CAREFUL AS ONCE YOU HAVE CREATED CATEGORIES YOU CANNOT DELETE THEM! </li>" +
 				"<br>" +
 				"<li>Do NOT use duplicate node names at the same level! </li>" +
