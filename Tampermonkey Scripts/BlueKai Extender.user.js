@@ -1148,16 +1148,18 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 			var message = "<h2>Upload your CSV of NEW categories/rules</h2>" +
 				"<p> (1) <strong><a target='_blank' href='https://drive.google.com/open?id=0B73sA1rCbNo7aE16eTB2YzJrNW8'>Download this template</a></strong> and fill out your category/rule structure</p>" +
 				"<p> (2) Upload it to create your new categories/rules</p>" +
-				"<p> <strong>IMPORTANT NOTES!!!</strong> </p>" +				
-				"<li> CHECK AUDIENCE BUILDER TO SEE IF YOUR CATEGORIES ARE SELECTABLE (if not, use <a target='_blank' href='https://gist.github.com/roshanbluekai/353a3644d6b85e9bd69464390ee4d5f3'>this fix</a>) </li>" +
+				"<h3> IMPORTANT NOTES!!!</h3>" +				
+				"<li> AFTER IMPORT, CHECK AUDIENCE BUILDER TO SEE IF YOUR CATEGORIES ARE SELECTABLE (if not, fix them with <a target='_blank' href='https://gist.github.com/roshanbluekai/353a3644d6b85e9bd69464390ee4d5f3'><strong>this</strong></a>) </li>" +
 				"<br>" +
 				"<li> BE VERY CAREFUL AS ONCE YOU HAVE CREATED CATEGORIES YOU CANNOT DELETE THEM! </li>" +
+				"<br>" +
+				"<li> TRY DOING A TEST ON YOUR OWN SEAT FIRST! </li>" +
 				"<br>" +
 				"<li>Do NOT use duplicate node names at the same level! </li>" +
 				"<br>" +
 				"<li>To upload the same file without refreshing the page, ensure you upload a new version of your file (saving it again is enough) </li>" +
 				"<br>" +
-				"<li>You don't need to add rules,notes or descriptions </li>" +
+				"<li>You don't need to add rules, notes or description columns if you don't want </li>" +
 				"<br>" +
 				"<li>You cannot import a rule with the same name twice so delete duplicates if you see failures </li>" +
 				"<br>" +
