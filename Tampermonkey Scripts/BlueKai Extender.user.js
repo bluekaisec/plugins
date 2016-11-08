@@ -1150,7 +1150,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 					// Send Data for processing
 					window._bk.functions.beginCategories(passed_data);
 					
-					alertify.success("CSV accepted : processing file");
+					alertify.success("CSV accepted : processing file (see console for logging)");
 
 					}
 				});
