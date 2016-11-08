@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BlueKai Extender
 // @namespace    http://tampermonkey.net/
-// @version      1.52
+// @version      1.53
 // @description  Extending BlueKai UI to improve
 // @author       Roshan Gonsalkorale (oracle_dmp_emea_deployments_gb_grp@oracle.com)
 // @match        https://*.bluekai.com/*
@@ -12,6 +12,10 @@
 // ==/UserScript==
 
 /* RELEASE NOTES
+
+v1.53 (roshan.gonsalkorale@oracle.com)
+- Updating logging call numbers to be accurate
+
 
 v1.52 (roshan.gonsalkorale@oracle.com)
 - Adding mutex, analytics and nav only flag ingest
@@ -929,7 +933,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 				 _bk.data.category_json[pathName].id=returnData.id; // Add category ID				
 				
 				
-				console.log("Self Classification | CATEGORIES | SUCCESS | " + (_bk.logs.last_import.calls) + "/" + _bk.logs.data_length + " | " + pathName);
+				console.log("Self Classification | CATEGORIES | SUCCESS | " + (_bk.logs.last_import.calls +1) + "/" + (_bk.logs.data_length + 1) + " | " + pathName);
 				_bk.logs.last_import.success++;
 				_bk.logs.last_import.calls++;
 				_bk.functions.batch_api_checker(); // check if API call can be made
@@ -947,8 +951,8 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 						var rule_data = JSON.stringify(_bk.data.category_json[pathName].rules[i]); 
 						var rule_name = _bk.data.category_json[pathName].rules[i].name;
 
-						var call_number = _bk.logs.last_import.calls;
-						var number_of_calls = _bk.logs.data_length;
+						var call_number = _bk.logs.last_import.calls +1;
+						var number_of_calls = _bk.logs.data_length +1;
 
 						// Trigger call to add rule
 
@@ -964,7 +968,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 							
 							// Success
 							
-							console.log("Self Classification | RULES | SUCCESS | " + call_number + "/" + number_of_calls + " | " + returnData.name);						
+							console.log("Self Classification | RULES | SUCCESS | " + call_number  + "/" + number_of_calls  + " | " + returnData.name);						
 							
 						}).fail(function(err,returnData) {
 
@@ -987,7 +991,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 				// Fail
 
 				// ADD ERROR DETAILS					
-				console.log("Self Classification | CATEGORIES | FAIL | " + (_bk.logs.last_import.calls) + "/" + _bk.logs.data_length + " | " + pathName + " | " + err.responseText);
+				console.log("Self Classification | CATEGORIES | FAIL | " + (_bk.logs.last_import.calls +1) + "/" + (_bk.logs.data_length + 1)  + " | " + pathName + " | " + err.responseText);
 				_bk.logs.last_import.fail++;
 				_bk.logs.last_import.calls++;
 				_bk.functions.batch_api_checker(); // check if API call can be made
@@ -1157,7 +1161,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 				"<p> (1) <strong><a target='_blank' href='https://drive.google.com/open?id=0B73sA1rCbNo7aE16eTB2YzJrNW8'>Download this template</a></strong> and fill out your category/rule structure</p>" +
 				"<p> (2) Upload it to create your new categories/rules</p>" +
 				"<h3> IMPORTANT NOTES!!!</h3>" +				
-				"<li> Mutex children, analytics only and navigation only don't seem to work (even though it shows in the UI). You'll likely need to fix with <a target='_blank' href='https://gist.github.com/roshanbluekai/353a3644d6b85e9bd69464390ee4d5f3'><strong>this solution</strong></a>) </li>" +
+				"<li> AFTER IMPORT, CHECK AUDIENCE BUILDER TO SEE IF YOUR CATEGORIES ARE SELECTABLE (if not, fix them with <a target='_blank' href='https://gist.github.com/roshanbluekai/353a3644d6b85e9bd69464390ee4d5f3'><strong>this</strong></a>) </li>" +
 				"<br>" +
 				"<li> BE VERY CAREFUL AS ONCE YOU HAVE CREATED CATEGORIES YOU CANNOT DELETE THEM! </li>" +
 				"<br>" +
@@ -1167,7 +1171,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 				"<br>" +
 				"<li>To upload the same file without refreshing the page, ensure you upload a new version of your file (saving it again is enough) </li>" +
 				"<br>" +
-				"<li>You don't need to add rules, notes, description, mutex children, navigation only or analytics only columns if you don't want </li>" +
+				"<li>You don't need to add rules, notes or description columns if you don't want </li>" +
 				"<br>" +
 				"<li>You cannot import a rule with the same name twice so delete duplicates if you see failures </li>" +
 				"<br>" +

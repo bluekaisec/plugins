@@ -13,6 +13,10 @@
 
 /* RELEASE NOTES
 
+v1.53 (roshan.gonsalkorale@oracle.com)
+- Updating logging call numbers to be accurate
+
+
 v1.52 (roshan.gonsalkorale@oracle.com)
 - Adding mutex, analytics and nav only flag ingest
 
@@ -929,7 +933,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 				 _bk.data.category_json[pathName].id=returnData.id; // Add category ID				
 				
 				
-				console.log("Self Classification | CATEGORIES | SUCCESS | " + (_bk.logs.last_import.calls) + "/" + _bk.logs.data_length + " | " + pathName);
+				console.log("Self Classification | CATEGORIES | SUCCESS | " + (_bk.logs.last_import.calls +1) + "/" + (_bk.logs.data_length + 1) + " | " + pathName);
 				_bk.logs.last_import.success++;
 				_bk.logs.last_import.calls++;
 				_bk.functions.batch_api_checker(); // check if API call can be made
@@ -947,8 +951,8 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 						var rule_data = JSON.stringify(_bk.data.category_json[pathName].rules[i]); 
 						var rule_name = _bk.data.category_json[pathName].rules[i].name;
 
-						var call_number = _bk.logs.last_import.calls;
-						var number_of_calls = _bk.logs.data_length;
+						var call_number = _bk.logs.last_import.calls +1;
+						var number_of_calls = _bk.logs.data_length +1;
 
 						// Trigger call to add rule
 
@@ -964,7 +968,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 							
 							// Success
 							
-							console.log("Self Classification | RULES | SUCCESS | " + call_number + "/" + number_of_calls + " | " + returnData.name);						
+							console.log("Self Classification | RULES | SUCCESS | " + call_number  + "/" + number_of_calls  + " | " + returnData.name);						
 							
 						}).fail(function(err,returnData) {
 
@@ -987,7 +991,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 				// Fail
 
 				// ADD ERROR DETAILS					
-				console.log("Self Classification | CATEGORIES | FAIL | " + (_bk.logs.last_import.calls) + "/" + _bk.logs.data_length + " | " + pathName + " | " + err.responseText);
+				console.log("Self Classification | CATEGORIES | FAIL | " + (_bk.logs.last_import.calls +1) + "/" + (_bk.logs.data_length + 1)  + " | " + pathName + " | " + err.responseText);
 				_bk.logs.last_import.fail++;
 				_bk.logs.last_import.calls++;
 				_bk.functions.batch_api_checker(); // check if API call can be made
