@@ -1157,7 +1157,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 				"<p> (1) <strong><a target='_blank' href='https://drive.google.com/open?id=0B73sA1rCbNo7aE16eTB2YzJrNW8'>Download this template</a></strong> and fill out your category/rule structure</p>" +
 				"<p> (2) Upload it to create your new categories/rules</p>" +
 				"<h3> IMPORTANT NOTES!!!</h3>" +				
-				"<li> AFTER IMPORT, CHECK AUDIENCE BUILDER TO SEE IF YOUR CATEGORIES ARE SELECTABLE (if not, fix them with <a target='_blank' href='https://gist.github.com/roshanbluekai/353a3644d6b85e9bd69464390ee4d5f3'><strong>this</strong></a>) </li>" +
+				"<li> Mutex children, analytics only and navigation only don't seem to work (even though it shows in the UI). You'll likely need to fix with <a target='_blank' href='https://gist.github.com/roshanbluekai/353a3644d6b85e9bd69464390ee4d5f3'><strong>this solution</strong></a>) </li>" +
 				"<br>" +
 				"<li> BE VERY CAREFUL AS ONCE YOU HAVE CREATED CATEGORIES YOU CANNOT DELETE THEM! </li>" +
 				"<br>" +
