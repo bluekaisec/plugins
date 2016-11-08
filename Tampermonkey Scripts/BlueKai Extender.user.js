@@ -1167,7 +1167,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 				"<br>" +
 				"<li>To upload the same file without refreshing the page, ensure you upload a new version of your file (saving it again is enough) </li>" +
 				"<br>" +
-				"<li>You don't need to add rules, notes or description columns if you don't want </li>" +
+				"<li>You don't need to add rules, notes, description, mutex children, navigation only or analytics only columns if you don't want </li>" +
 				"<br>" +
 				"<li>You cannot import a rule with the same name twice so delete duplicates if you see failures </li>" +
 				"<br>" +
