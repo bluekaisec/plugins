@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BlueKai Extender
 // @namespace    http://tampermonkey.net/
-// @version      1.5
+// @version      1.52
 // @description  Extending BlueKai UI to improve
 // @author       Roshan Gonsalkorale (oracle_dmp_emea_deployments_gb_grp@oracle.com)
 // @match        https://*.bluekai.com/*
@@ -12,6 +12,14 @@
 // ==/UserScript==
 
 /* RELEASE NOTES
+
+v1.52 (roshan.gonsalkorale@oracle.com)
+- Adding mutex, analytics and nav only flag ingest
+
+
+v1.51 (roshan.gonsalkorale@oracle.com)
+- Adding warning for bulk category importer
+
 
 v1.5 (roshan.gonsalkorale@oracle.com)
 - Added rule import too
@@ -352,7 +360,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 			}).success(function() {
 
 				// Success
-				console.log("Self Classification | RULES | SUCCESS | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.last_import.length + " | " + ruleName);
+				console.log("Self Classification | RULES | SUCCESS | " + (_bk.logs.last_import.calls) + "/" + _bk.logs.last_import.length + " | " + ruleName);
 				_bk.logs.last_import.success++;
 				_bk.logs.last_import.calls++;
 				_bk.functions.batch_api_checker(); // check if API call can be made
@@ -362,7 +370,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 				// Fail
 
 				// ADD ERROR DETAILS		
-				console.log("Self Classification | RULES | FAIL | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.last_import.length + " | " + ruleName + " | " + err.responseText);
+				console.log("Self Classification | RULES | FAIL | " + (_bk.logs.last_import.calls) + "/" + _bk.logs.last_import.length + " | " + ruleName + " | " + err.responseText);
 				_bk.logs.last_import.fail++;
 				_bk.logs.last_import.calls++;
 				_bk.functions.batch_api_checker(); // check if API call can be made
@@ -505,12 +513,21 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 		// ### BULK CATEGORY IMPORTER ###
 		
 		// FUNCTION : Begin Data Send ###
-		window._bk.functions.beginCategories = function(categories,descriptions,notes,rules,partner_id) {
+		window._bk.functions.beginCategories = function(received_data) {
 				
+
+			// Parse incoming data
+			if(received_data.categories){var categories = received_data.categories;}
+			if(received_data.descriptions){var descriptions = received_data.descriptions;}
+			if(received_data.notes){var notes = received_data.notes;}
+			if(received_data.rules){var rules = received_data.rules;}
+			if(received_data.partner_id){var partner_id = received_data.partner_id;}
+			if(received_data.mutex){var mutex = received_data.mutex;}
+			if(received_data.analytics_only){var analytics_only = received_data.analytics_only;}
+			if(received_data.navigation_only){var navigation_only = received_data.navigation_only;}			
 
 			// CONFIG : Specify how many calls you want to allow the browser to try at once
 			var intervals = 20;	// 20 is default
-
 
 			_bk.logs.call_number = 0; // kill logging
 
@@ -532,15 +549,21 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 				
 				for (var j = 0; j < categories.data[i].length; j++) {
 
+					// calculate column values
 					categories.data[i][j] = categories.data[i][j].replace(/\|/g,"_"); // replace '|' with something else (reserved char)
 					var cell_value = categories.data[i][j]; // capture cell value					
 					window._bk.logs.upload_id_counter++ // increment upload ID
-									
+					if(typeof mutex !== "undefined"){var mutex_children = mutex[i]} else {var mutex_children = 0}; // mutex children
+					if(typeof analytics_only !== "undefined"){var analytics = analytics_only[i]} else {var analytics = 0};// analytics only
+					if(typeof navigation_only !== "undefined"){var nav_only = navigation_only[i]} else {var nav_only = 0}; // navigation only								 								 
+					if(typeof descriptions !== "undefined"){var desc = descriptions[i]} else {var desc = "-"}; // description
+					if(typeof notes !== "undefined"){var note = notes[i]} else {var note = "-"}; // notes
+										
 					// FUNCTION : Rule Handler
 					_bk.functions.rule_handler = function(rule_array,full_path){
-
+														
 							// If we have rules
-							if(rules[0].length > 0){
+							if(rule_array[0]){
 
 								var rule = {};							
 								rule.partner_id = partner_id; // UPDATE 
@@ -604,9 +627,12 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 								name:cell_value,
 								path_name:full_path,
 								children:[],
-								note:notes[i],
-								description:descriptions[i],
-								rules:[]
+								note:note,
+								description:desc,
+								rules:[],
+								navigation_only:nav_only,
+								mutex:mutex_children,
+								analytics_only:analytics
 
 							};
 
@@ -674,9 +700,12 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 							name:cell_value,
 							path_name:my_path,
 							children:[],
-							note:notes[i],
-							description:descriptions[i],
-							rules:[]
+							note:note,
+							description:desc,
+							rules:[],
+							navigation_only:nav_only,
+							mutex:mutex_children,
+							analytics_only:analytics
 
 						}
 
@@ -798,7 +827,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 
 			// Log calls which are being fired
-			alertify.maxLogItems(1).delay(0).log("Importing Rules " + _bk.logs.batch_bucket_start + " to " + _bk.logs.batch_bucket_end + " (of " + _bk.logs.data_length + ")");
+			alertify.maxLogItems(1).delay(0).log("Importing Categories " + _bk.logs.batch_bucket_start + " to " + _bk.logs.batch_bucket_end + " (of " + _bk.logs.data_length + ")");
 
 			// Call API with current batch
 			for (var i = 0; i < current_calls.length; i++) {
@@ -862,7 +891,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 		// FUNCTION : Call Dispatcher ###
 		window._bk.functions.callDispatcher = function(data) {
 			
-			var pathName = data;
+			var pathName = data;			
 
 			var data = {
 				"status": "active",
@@ -870,9 +899,9 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 				"name": _bk.data.category_json[data].name,
 				"description": _bk.data.category_json[data].description,  
 				"notes": _bk.data.category_json[data].note,  
-				"analytics_excluded": "0",
-				"mutex_children": "0",
-				"navigation_only": "0"
+				"analytics_excluded": _bk.data.category_json[data].analytics_only, 
+				"mutex_children": _bk.data.category_json[data].mutex,
+				"navigation_only": _bk.data.category_json[data].navigation_only
 			};
 
 			var data = JSON.stringify(data);
@@ -900,11 +929,11 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 				 _bk.data.category_json[pathName].id=returnData.id; // Add category ID				
 				
 				
-				console.log("Self Classification | CATEGORIES | SUCCESS | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.data_length + " | " + pathName);
+				console.log("Self Classification | CATEGORIES | SUCCESS | " + (_bk.logs.last_import.calls) + "/" + _bk.logs.data_length + " | " + pathName);
 				_bk.logs.last_import.success++;
 				_bk.logs.last_import.calls++;
 				_bk.functions.batch_api_checker(); // check if API call can be made
-				
+								
 				if(_bk.data.category_json[pathName].rules[0]){
 
 					// Push Category ID into rule and create rule
@@ -917,6 +946,9 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 						_bk.data.category_json[pathName].rules[i].category_ids.push(category_id); // Add category ID to rules
 						var rule_data = JSON.stringify(_bk.data.category_json[pathName].rules[i]); 
 						var rule_name = _bk.data.category_json[pathName].rules[i].name;
+
+						var call_number = _bk.logs.last_import.calls;
+						var number_of_calls = _bk.logs.data_length;
 
 						// Trigger call to add rule
 
@@ -931,14 +963,16 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 						}).success(function(returnData) {
 							
 							// Success
-							console.log("Self Classification | RULES | SUCCESS | " + returnData.name);						
-
-						}).fail(function(err) {
+							
+							console.log("Self Classification | RULES | SUCCESS | " + call_number + "/" + number_of_calls + " | " + returnData.name);						
+							
+						}).fail(function(err,returnData) {
 
 							// Fail
 
 							// ADD ERROR DETAILS		
-							console.log("Self Classification | RULES | FAIL | " + rule_name + "|" + err.responseText);						
+							
+							console.log("Self Classification | RULES | FAIL | " + call_number + "/" + number_of_calls + " | rule name not available |" + err.responseText);						
 							
 
 						});
@@ -953,7 +987,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 				// Fail
 
 				// ADD ERROR DETAILS					
-				console.log("Self Classification | CATEGORIES | FAIL | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.data_length + " | " + pathName + " | " + err.responseText);
+				console.log("Self Classification | CATEGORIES | FAIL | " + (_bk.logs.last_import.calls) + "/" + _bk.logs.data_length + " | " + pathName + " | " + err.responseText);
 				_bk.logs.last_import.fail++;
 				_bk.logs.last_import.calls++;
 				_bk.functions.batch_api_checker(); // check if API call can be made
@@ -1019,80 +1053,51 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 					results.data.shift();				
 					
 					// Split into categories/description/notes/rules
-														
-					// Create notes
-					var notes = [];
 
-					for (var i = 0; i < window._bk.data.column_headers.length; i++) {
-						
-						if(window._bk.data.column_headers[i] === "Notes"){
+					// FUNCTION : Column Parser
+					var column_parser = function(column_name){
+
+						var new_data = [];
+
+							for (var i = 0; i < window._bk.data.column_headers.length; i++) {
 							
-							var notes_column = i; // calculate notes column
+							if(window._bk.data.column_headers[i] === column_name){
+								
+								var column_ref = i; // calculate column
 
-						}											
-					
-					}
-					
-					for (var i = 0; i < results.data.length; i++) {
+							}											
 						
-						var note = (results.data[i][notes_column]) ? results.data[i][notes_column] : "-"; //  Sanitise note value
-						notes.push(note); // Create notes column
-						if(typeof notes_column !== "undefined"){results.data[i].splice(notes_column,1);} // Remove notes from results						
+						}
 						
-					}
-
-					if(typeof notes_column !== "undefined"){window._bk.data.column_headers.splice(notes_column,1);} // Remove notes from column headers
-
-					// Create Description Column
-					var descriptions = [];
-
-					for (var i = 0; i < window._bk.data.column_headers.length; i++) {
-												
-						if(window._bk.data.column_headers[i] === "Description"){
+						for (var i = 0; i < results.data.length; i++) {
 							
-							var description_column = i; // calculate description column
+							var data = (results.data[i][column_ref]) ? results.data[i][column_ref] : "-"; //  Sanitise note value
+							new_data.push(data); // Create notes column
+							if(typeof column_ref !== "undefined"){results.data[i].splice(column_ref,1);} // Remove notes from results						
+							
+						}
+
+						if(typeof column_ref !== "undefined"){window._bk.data.column_headers.splice(column_ref,1);} // Remove column from column headers
+
+						if(typeof column_ref === "undefined"){
+							
+							return undefined; // return undefined if no column
+
+						} else {
+
+							return new_data; // return column data
 
 						}
-					
-					}
 
-					for (var i = 0; i < results.data.length; i++) {
-						
-						var description = (results.data[i][description_column]) ? results.data[i][description_column] : "-"; //  Sanitise description value
-						descriptions.push(description); // Create description column
-						if(typeof description_column !== "undefined"){results.data[i].splice(description_column,1);} // Remove description from results
+					}
 												
-					}
-
-					if(typeof description_column !== "undefined"){window._bk.data.column_headers.splice(description_column,1);} // Remove description from column headers
-
-					// Calculate Partner ID
-					var partner_id = [];
-
-					for (var i = 0; i < window._bk.data.column_headers.length; i++) {
-												
-						if(window._bk.data.column_headers[i] === "Partner ID (only required for rules)"){
-							
-							var partner_column = i; // calculate description column
-
-						}
-					
-					}
-
-					for (var i = 0; i < results.data.length; i++) {
-						
-						var partner = (results.data[i][partner_column]) ? results.data[i][partner_column] : "-"; //  Sanitise description value
-						partner_id.push(partner); // Create partner column
-
-
-
-						if(typeof partner_column !== "undefined"){results.data[i].splice(partner_column,1);} // Remove Partner ID from results
-												
-					}
-
-					if(typeof partner_column !== "undefined"){window._bk.data.column_headers.splice(partner_column,1);} // Remove description from column headers
-					var partner_id = partner_id[0]; // Set partner ID
-
+					// Create columns
+					var notes = column_parser("Notes"); // Notes
+					var descriptions = column_parser("Description"); // Description
+					var partner_id = column_parser("Partner ID (only required for rules)"); // Partner (ID)
+					var mutex = column_parser("Mutex Children (0 for false, 1 for true)"); // Mutex Categories
+					var nav_only = column_parser("Navigation Only (0 for false, 1 for true)"); // Navigation Only
+					var analytics_only = column_parser("Analytics Only (0 for false, 1 for true)"); // Analytics Only
 
 					// Create rules columns
 					var rules = [];
@@ -1126,8 +1131,20 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 						calls: 0
 					};
 
+					// Create object to send for processing
+					var passed_data = {};
+
+					passed_data.categories = results;
+					if(typeof descriptions !== "undefined"){passed_data.descriptions = descriptions;}
+					if(typeof notes !== "undefined"){passed_data.notes = notes;}
+					if(typeof rules !== "undefined"){passed_data.rules = rules;}
+					if(typeof partner_id !== "undefined"){passed_data.partner_id = partner_id;}
+					if(typeof mutex !== "undefined"){passed_data.mutex = mutex;}
+					if(typeof analytics_only !== "undefined"){passed_data.analytics_only = analytics_only;}
+					if(typeof nav_only !== "undefined"){passed_data.navigation_only = nav_only;}
+
 					// Send Data for processing
-					window._bk.functions.beginCategories(results,descriptions,notes,rules,partner_id);
+					window._bk.functions.beginCategories(passed_data);
 					
 					alertify.success("CSV accepted : processing file");
 
@@ -1136,15 +1153,23 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 			}
 
 			// TO CHANGE : 
-			var message = "<h2>Upload your CSV of NEW categories</h2>" +
-				"<p> (1) <strong><a target='_blank' href='https://drive.google.com/open?id=0B73sA1rCbNo7aE16eTB2YzJrNW8'>Download this template</a></strong> and fill out your category structure</p>" +
-				"<p> (2) Upload it to create your new categories</p>" +
-				"<p> <strong>NOTES</strong> </p>" +				
-				"<li> BE VERY CAREFUL AS ONCE YOU HAVE CREATED THESE CATEGORIES YOU CANNOT DELETE THEM! </li>" +
+			var message = "<h2>Upload your CSV of NEW categories/rules</h2>" +
+				"<p> (1) <strong><a target='_blank' href='https://drive.google.com/open?id=0B73sA1rCbNo7aE16eTB2YzJrNW8'>Download this template</a></strong> and fill out your category/rule structure</p>" +
+				"<p> (2) Upload it to create your new categories/rules</p>" +
+				"<h3> IMPORTANT NOTES!!!</h3>" +				
+				"<li> AFTER IMPORT, CHECK AUDIENCE BUILDER TO SEE IF YOUR CATEGORIES ARE SELECTABLE (if not, fix them with <a target='_blank' href='https://gist.github.com/roshanbluekai/353a3644d6b85e9bd69464390ee4d5f3'><strong>this</strong></a>) </li>" +
+				"<br>" +
+				"<li> BE VERY CAREFUL AS ONCE YOU HAVE CREATED CATEGORIES YOU CANNOT DELETE THEM! </li>" +
+				"<br>" +
+				"<li> TRY DOING A TEST ON YOUR OWN SEAT FIRST! </li>" +
 				"<br>" +
 				"<li>Do NOT use duplicate node names at the same level! </li>" +
 				"<br>" +
 				"<li>To upload the same file without refreshing the page, ensure you upload a new version of your file (saving it again is enough) </li>" +
+				"<br>" +
+				"<li>You don't need to add rules, notes or description columns if you don't want </li>" +
+				"<br>" +
+				"<li>You cannot import a rule with the same name twice so delete duplicates if you see failures </li>" +
 				"<br>" +
 				"<li>If you create the wrong categories, use the 'Edit>Bulk Update' feature </li>";
 
@@ -1176,7 +1201,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 
 		// ADD BUTTON TO UI ###
-		jQuery('button[value="reorder"]').parent().append('<li><button id="bk_add_bulk_categories" onclick="_bk.functions.bk_add_bulk_categories_prompt()" class="button" name = "Add Bulk Categories (Beta)">Add Bulk Categories (Beta)</button></li>');		
+		jQuery('button[value="reorder"]').parent().append('<li><button id="bk_add_bulk_categories" onclick="_bk.functions.bk_add_bulk_categories_prompt()" class="button" name = "Add Bulk Categories/Rules (Beta)">Add Bulk Categories/Rules (Beta)</button></li>');		
 
 	}
 
