@@ -530,8 +530,8 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 							// define all but rules
 							rule_object.name = rule_names[i]; // set name
-							rule_object.type = "phint"; // force as phint rule
-							rule_object.partner_id = partner_ids[i]; // set partner ID
+							rule_object.type = "phint"; // force as phint rule							
+							rule_object.partner_id = partner_ids[0]; // set partner ID
 							rule_object.category_ids = (category_ids[i] !== "-") ? category_ids[i].split(',') : []; // set category_ids
 							rule_object.site_ids = (site_ids[i] !== "-") ? site_ids[i].split(',') : []; // set site_ids
 							rule_object.phints = [];
@@ -609,7 +609,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 		};
 
 		// ADD BUTTON TO UI ###
-		jQuery('button[value="destroy"]').parent().parent().append('<li><button id="bk_add_bulk_categories" onclick="_bk.functions.bk_add_bulk_rules_prompt()" class="button" name = "Add Bulk Rules via CSV (Beta)">Add Bulk Rules via CSV (Beta)</button></li>');
+		jQuery('button[value="destroy"]').parent().parent().append('<li><button id="bk_add_bulk_categories" onclick="_bk.functions.bk_add_bulk_rules_prompt()" class="button" name = "Add Bulk Rules (Beta)">Add Bulk Rules (Beta)</button></li>');
 		
 		
 	}
