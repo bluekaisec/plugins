@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BlueKai Extender
 // @namespace    http://tampermonkey.net/
-// @version      1.52
+// @version      1.54
 // @description  Extending BlueKai UI to improve
 // @author       Roshan Gonsalkorale (oracle_dmp_emea_deployments_gb_grp@oracle.com)
 // @match        https://*.bluekai.com/*
@@ -12,6 +12,9 @@
 // ==/UserScript==
 
 /* RELEASE NOTES
+
+v1.54 (roshan.gonsalkorale@oracle.com)
+- Updating rule updater to use CSV
 
 v1.53 (roshan.gonsalkorale@oracle.com)
 - Updating logging call numbers to be accurate
@@ -233,8 +236,6 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 		// FUNCTION : Begin Data Send ###
 		window._bk.functions.beginClassification = function(data) {
 
-
-
 			// config
 			var intervals = 50;
 			_bk.logs.call_number = 0; //reset logs
@@ -364,7 +365,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 			}).success(function() {
 
 				// Success
-				console.log("Self Classification | RULES | SUCCESS | " + (_bk.logs.last_import.calls) + "/" + _bk.logs.last_import.length + " | " + ruleName);
+				console.log("Self Classification | RULES | SUCCESS | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.data_length + " | " + ruleName);
 				_bk.logs.last_import.success++;
 				_bk.logs.last_import.calls++;
 				_bk.functions.batch_api_checker(); // check if API call can be made
@@ -373,8 +374,8 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 				// Fail
 
-				// ADD ERROR DETAILS		
-				console.log("Self Classification | RULES | FAIL | " + (_bk.logs.last_import.calls) + "/" + _bk.logs.last_import.length + " | " + ruleName + " | " + err.responseText);
+				// ADD ERROR DETAILS					
+				console.log("Self Classification | RULES | FAIL | " + (_bk.logs.last_import.calls + 1) + "/" + _bk.logs.data_length + " | " + ruleName + " | " + err.responseText);
 				_bk.logs.last_import.fail++;
 				_bk.logs.last_import.calls++;
 				_bk.functions.batch_api_checker(); // check if API call can be made
@@ -419,71 +420,198 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 		};
 
-		
 		// FUNCTION : ADD CLASSIFICATIONS PROMPT ###				
-		window._bk.functions.bk_add_bulk_classifications_prompt = function(data) {
+		window._bk.functions.bk_add_bulk_rules_prompt = function(data) {
 
-			var message = "<h2>Please paste your JSON data in this format</h2>" +
-				"<p> Click <a target='_blank' href='https://gist.github.com/rajtastic/2de2822a13b2e69189b0a4550e757d9f'>here</a> for correct format </p>" +
-				"<p> Note : there may be a delay before the import begins if you are importing many rules (e.g. over 100) </p>";
+			window._bk.functions = window._bk.functions || {};
+			window._bk.functions.file_process = function(data) {
 
-			alertify.defaultValue("Please Paste Your JSON here").prompt(message,
+				Papa.parse(event.target.files[0], {
 
-				function(val, ev) {
+					complete: function(results) {
 
-					// The click event is in the event variable, so you can use it here.
-					ev.preventDefault();
+						console.log("BK LOG : Papa has processed the csv below...");
+						console.log(results);
 
-					// Reset log data
-					window._bk.logs.last_import = {
-						success: 0,
-						fail: 0,
-						calls: 0
-					};
+						// Move colum headers somewhere else
+						window._bk.data = window._bk.data || {};
+						window._bk.data.column_headers = results.data[0];
 
-					// LOOP THROUGH JSON DATA AND SEND
-					var exportData = "[" + val + "]";
+						results.data.shift();
 
-					// Catch syntax errors in JSON
-					try {
+						// Split into categories/description/notes/rules
 
-						var exportDataParsed = JSON.parse(exportData);
-						_bk.logs.last_import.length = exportDataParsed.length;
+						// FUNCTION : Column Parser
+						var column_parser = function(column_name) {
 
-					} catch (err) {
+							var new_data = [];
 
-						alertify.error("JSON data not correctly formatted : see console");
-						console.log("Self Classification | RULES | FAIL : JSON not formatted correctly | " + err);
+							for (var i = 0; i < window._bk.data.column_headers.length; i++) {
+
+								if (window._bk.data.column_headers[i] === column_name) {
+
+									var column_ref = i; // calculate column
+
+								}
+
+							}
+
+							for (var i = 0; i < results.data.length; i++) {
+
+								var data = (results.data[i][column_ref]) ? results.data[i][column_ref] : "-"; //  Sanitise note value
+								new_data.push(data); // Create notes column
+								if (typeof column_ref !== "undefined") {
+									results.data[i].splice(column_ref, 1);
+								} // Remove notes from results						
+
+							}
+
+							if (typeof column_ref !== "undefined") {
+								window._bk.data.column_headers.splice(column_ref, 1);
+							} // Remove column from column headers
+
+							if (typeof column_ref === "undefined") {
+
+								return undefined; // return undefined if no column
+
+							} else {
+
+								return new_data; // return column data
+
+							}
+
+						}
+
+						// Create columns
+						var rule_names = column_parser("rule name"); // Rule Name
+						var partner_ids = column_parser("partner_id"); // Partner ID
+						var site_ids = column_parser("site_ids"); // Site IDs			
+						var category_ids = column_parser("category_ids"); // Category IDs
+
+						// Create rules columns
+						var rules = [];
+
+						for (var i = 0; i < window._bk.data.column_headers.length; i++) {
+
+							if (window._bk.data.column_headers[i] === "phint:key") {
+
+								var rule_column_start = i; // calculate first rule column
+								var rule_column_end = window._bk.data.column_headers.length - 1; // calculate last rule column
+								var rule_column_diff = rule_column_end - rule_column_start + 1; // calculate difference in columns
+								break;
+							}
+
+						}
+
+						for (var i = 0; i < results.data.length; i++) {
+
+							var rule = results.data[i].splice(rule_column_start, rule_column_diff); // Remove rules and save												
+							rules.push(rule); // Create description column						
+
+						}
+
+
+						_bk.data.rule_headers = _bk.data.column_headers.splice(rule_column_start, rule_column_diff); // Remove rules from column headers and save
+
+						// Reset log data
+						window._bk.logs.last_import = {
+							success: 0,
+							fail: 0,
+							calls: 0
+						};
+
+						// Convert data into JSON format
+						var data = [];
+						
+						// Loop through CSV data
+						for (var i = 0; i < rule_names.length; i++) {
+
+							var rule_object = {};
+
+							// define all but rules
+							rule_object.name = rule_names[i]; // set name
+							rule_object.type = "phint"; // force as phint rule
+							rule_object.partner_id = partner_ids[i]; // set partner ID
+							rule_object.category_ids = (category_ids[i] !== "-") ? category_ids[i].split(',') : []; // set category_ids
+							rule_object.site_ids = (site_ids[i] !== "-") ? site_ids[i].split(',') : []; // set site_ids
+							rule_object.phints = [];
+
+							// define all rules
+							for (var j = 0; j < rules[i].length; j++) {
+
+								if (!rules[i][j]) {
+									break;
+								}; // stop if there are no rules
+
+								// Add data to rule
+								if (_bk.data.rule_headers[j] === "phint:key") {
+
+									var rule = {};
+									rule.key = rules[i][j];
+
+								} else if (_bk.data.rule_headers[j] === "phint:operator") {
+
+									rule.operator = rules[i][j];
+
+								} else if (_bk.data.rule_headers[j] === "phint:value") {
+
+									rule.value = rules[i][j];																
+									rule_object.phints.push(rule);
+								}
+														
+							}
+						
+							data.push(rule_object);
+						}
+
+						// Send Data for processing
+						window._bk.functions.beginClassification(data);
+
+						alertify.success("CSV accepted : processing file (see console for logging)");
 
 					}
+				});
+			}
 
+			// TO CHANGE : 
+			var message = "<h2>Upload your CSV of NEW rules</h2>" +
+				"<p> (1) <strong><a target='_blank' href='https://docs.google.com/spreadsheets/d/1v1iJ57IM9Tz4r5WU72gQjUF4b-emjF7A0tHVc-GCOhU/edit#gid=994889984'>Download this template as a CSV</a></strong> and fill out your rules</p>" +
+				"<p> (2) Upload it to create your new rules</p>" +
+				"<h3> IMPORTANT NOTES!!!</h3>" +
+				"<li> TRY DOING A TEST ON YOUR OWN SEAT FIRST! </li>" +
+				"<br>" +
+				"<li>If you create the wrong rules, use the 'Edit>Bulk Update' feature to edit them</li>";
 
-					// Send Data
-					window._bk.functions.beginClassification(exportDataParsed);
+			alertify
+				.okBtn("Choose your file")
+				.cancelBtn("Cancel")
+				.confirm(message, function(ev) {
 
-					/*
-					for (var i = 0; i < exportDataParsed.length; i++) {
-
-						// Send Data
-						window._bk.functions.createClassificationRulePhint(exportDataParsed[i]);
-
-					}*/
-
-				},
-				function(ev) {
-
-					// The click event is in the event variable, so you can use it here.
+					// The click event is in the
+					// event variable, so you can use
+					// it here.
 					ev.preventDefault();
 
-				}
-			);
+					jQuery('body').append('<input type="file" accept=".csv" style="hidden" id="myFile">');
+					jQuery('#myFile').on('change', window._bk.functions.file_process);
+					jQuery('#myFile').click();
+
+				}, function(ev) {
+
+					// The click event is in the
+					// event variable, so you can use
+					// it here.
+					ev.preventDefault();
+
+
+				});
 
 		};
 
-
 		// ADD BUTTON TO UI ###
-		jQuery('button[value="destroy"]').parent().parent().append('<li><button id="bk_add_bulk_classifications" onclick="_bk.functions.bk_add_bulk_classifications_prompt()" class="button" name = "Add Bulk Classifications">Add Bulk Classifications</button></li>');
-
+		jQuery('button[value="destroy"]').parent().parent().append('<li><button id="bk_add_bulk_categories" onclick="_bk.functions.bk_add_bulk_rules_prompt()" class="button" name = "Add Bulk Rules via CSV (Beta)">Add Bulk Rules via CSV (Beta)</button></li>');
+		
+		
 	}
 
 	/*
@@ -1150,7 +1278,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 					// Send Data for processing
 					window._bk.functions.beginCategories(passed_data);
 					
-					alertify.success("CSV accepted : processing file");
+					alertify.success("CSV accepted : processing file (see console for logging)");
 
 					}
 				});
