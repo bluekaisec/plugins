@@ -531,7 +531,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 							// define all but rules
 							rule_object.name = rule_names[i]; // set name
 							rule_object.type = "phint"; // force as phint rule
-							rule_object.partner_id = partner_ids[i]; // set partner ID
+							rule_object.partner_id = partner_ids[0]; // set partner ID
 							rule_object.category_ids = (category_ids[i] !== "-") ? category_ids[i].split(',') : []; // set category_ids
 							rule_object.site_ids = (site_ids[i] !== "-") ? site_ids[i].split(',') : []; // set site_ids
 							rule_object.phints = [];
