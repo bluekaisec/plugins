@@ -702,7 +702,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 							if(rule_array[0]){
 
 								var rule = {};							
-								rule.partner_id = [partner_id[0]]; // UPDATE 
+								rule.partner_id = partner_id[0]; // UPDATE 
 								rule.name = [full_path + " : "]; 
 								rule.type = "phint";
 								rule.site_ids = [];
