@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BlueKai Extender
 // @namespace    http://tampermonkey.net/
-// @version      1.54
+// @version      1.55
 // @description  Extending BlueKai UI to improve
 // @author       Roshan Gonsalkorale (oracle_dmp_emea_deployments_gb_grp@oracle.com)
 // @match        https://*.bluekai.com/*
@@ -12,6 +12,10 @@
 // ==/UserScript==
 
 /* RELEASE NOTES
+
+v1.54 (roshan.gonsalkorale@oracle.com)
+- Updating fix to rule/category updaters to force operators to lowercase and also only use partner ID once
+
 
 v1.54 (roshan.gonsalkorale@oracle.com)
 - Updating rule updater to use CSV
@@ -551,7 +555,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 								} else if (_bk.data.rule_headers[j] === "phint:operator") {
 
-									rule.operator = rules[i][j];
+									rule.operator = (rules[i][j]) ? rules[i][j].toLowerCase() : rules[i][j];
 
 								} else if (_bk.data.rule_headers[j] === "phint:value") {
 
@@ -698,7 +702,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 							if(rule_array[0]){
 
 								var rule = {};							
-								rule.partner_id = partner_id; // UPDATE 
+								rule.partner_id = [partner_id[0]]; // UPDATE 
 								rule.name = [full_path + " : "]; 
 								rule.type = "phint";
 								rule.site_ids = [];
@@ -719,7 +723,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 									} else if (_bk.data.rule_headers[j] === "rule_operator"){
 
-										phint_rule.operator = rules[i][j];
+										phint_rule.operator = (rules[i][j]) ? rules[i][j].toLowerCase() : rules[i][j];
 
 									} else if (_bk.data.rule_headers[j] === "rule_value"){
 
@@ -1288,9 +1292,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 			var message = "<h2>Upload your CSV of NEW categories/rules</h2>" +
 				"<p> (1) <strong><a target='_blank' href='https://docs.google.com/spreadsheets/d/1MLlBUQUO8aJlEVasmSv8YkuzpulCRQ4ncXrXYAhwyek/edit#gid=1626396405'>Download this template</a></strong> and fill out your category/rule structure</p>" +
 				"<p> (2) Upload it to create your new categories/rules</p>" +
-				"<h3> IMPORTANT NOTES!!!</h3>" +				
-				"<li> AFTER IMPORT, CHECK AUDIENCE BUILDER TO SEE IF YOUR CATEGORIES ARE SELECTABLE (if not, fix them with <a target='_blank' href='https://gist.github.com/roshanbluekai/353a3644d6b85e9bd69464390ee4d5f3'><strong>this</strong></a>) </li>" +
-				"<br>" +
+				"<h3> IMPORTANT NOTES!!!</h3>" +								
 				"<li> BE VERY CAREFUL AS ONCE YOU HAVE CREATED CATEGORIES YOU CANNOT DELETE THEM! </li>" +
 				"<br>" +
 				"<li> TRY DOING A TEST ON YOUR OWN SEAT FIRST! </li>" +
