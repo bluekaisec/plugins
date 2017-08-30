@@ -14,7 +14,7 @@
 /* RELEASE NOTES
 
 v1.56 (roshan.gonsalkorale@oracle.com)
-- Adding Site ID filters for rules and adding UI reporting for failed category structure
+- Adding Site ID filters for rules
 
 v1.55 (roshan.gonsalkorale@oracle.com)
 - Updating fix to rule/category updaters to force operators to lowercase and also only use partner ID once
@@ -714,7 +714,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 								rule.partner_id = partner_id[0]; // UPDATE 
 								rule.name = [full_path + " : "]; 
 								rule.type = "phint";
-								rule.site_ids = [];
+								rule.site_ids = site_id_list;
 								rule.category_ids = [];
 								rule.phints = []; // UPDATE 							
 
