@@ -14,8 +14,7 @@
 /* RELEASE NOTES
 
 v1.56 (roshan.gonsalkorale@oracle.com)
-- Adding Site ID filters for rules
-
+- Adding Site ID filters for rules and adding UI reporting for failed category structure
 
 v1.55 (roshan.gonsalkorale@oracle.com)
 - Updating fix to rule/category updaters to force operators to lowercase and also only use partner ID once
@@ -708,14 +707,14 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 					// FUNCTION : Rule Handler
 					_bk.functions.rule_handler = function(rule_array,full_path,site_id_list){
 												
-							// If we have rules													
+							// If we have rules							
 							if(rule_array[0]){
 
 								var rule = {};							
 								rule.partner_id = partner_id[0]; // UPDATE 
 								rule.name = [full_path + " : "]; 
 								rule.type = "phint";
-								rule.site_ids = site_id_list;
+								rule.site_ids = [];
 								rule.category_ids = [];
 								rule.phints = []; // UPDATE 							
 
@@ -836,6 +835,11 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 							continue;
 						}
 											
+						// Check JSON tree and flag errors
+						if(!window._bk.data.category_json[parent_path]){
+							alertify.error("ERROR : Parent Path does not exist - check your category structure : " + parent_path);	
+						}
+						
 						// Add to json tree						
 						window._bk.data.category_json[my_path] = {
 
@@ -873,7 +877,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 			}										
 			
-			// 1 : CALCULATE BATCH POINTS			
+			// 1 : CALCULATE BATCH POINTS					
 			window._bk.logs.data_length = Object.keys(_bk.data.category_json).length; // how long is it?
 			window._bk.logs.batches = Math.ceil(window._bk.logs.data_length / intervals); // how many batches to run?
 
