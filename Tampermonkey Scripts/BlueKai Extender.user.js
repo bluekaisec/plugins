@@ -708,7 +708,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 					// FUNCTION : Rule Handler
 					_bk.functions.rule_handler = function(rule_array,full_path,site_id_list){
 												
-							// If we have rules														
+							// If we have rules													
 							if(rule_array[0]){
 
 								var rule = {};							
