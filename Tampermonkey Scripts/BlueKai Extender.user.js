@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BlueKai Extender
 // @namespace    http://tampermonkey.net/
-// @version      1.55
+// @version      1.56
 // @description  Extending BlueKai UI to improve
 // @author       Roshan Gonsalkorale (oracle_dmp_emea_deployments_gb_grp@oracle.com)
 // @match        https://*.bluekai.com/*
@@ -13,7 +13,11 @@
 
 /* RELEASE NOTES
 
-v1.54 (roshan.gonsalkorale@oracle.com)
+v1.56 (roshan.gonsalkorale@oracle.com)
+- Adding Site ID filters for rules
+
+
+v1.55 (roshan.gonsalkorale@oracle.com)
 - Updating fix to rule/category updaters to force operators to lowercase and also only use partner ID once
 
 
@@ -661,6 +665,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 			if(received_data.mutex){var mutex = received_data.mutex;}
 			if(received_data.analytics_only){var analytics_only = received_data.analytics_only;}
 			if(received_data.navigation_only){var navigation_only = received_data.navigation_only;}			
+			if(received_data.site_ids){var site_ids = received_data.site_ids;}			
 
 			// CONFIG : Specify how many calls you want to allow the browser to try at once
 			var intervals = 20;	// 20 is default
@@ -694,18 +699,23 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 					if(typeof navigation_only !== "undefined"){var nav_only = navigation_only[i]} else {var nav_only = 0}; // navigation only								 								 
 					if(typeof descriptions !== "undefined"){var desc = descriptions[i]} else {var desc = "-"}; // description
 					if(typeof notes !== "undefined"){var note = notes[i]} else {var note = "-"}; // notes
+					if(typeof site_ids !== "undefined"){
+						if(site_ids[i]){
+							var site_id_list = site_ids[i].split("|");
+							} else {var site_id_list = []};
+					}; // site IDs
 										
 					// FUNCTION : Rule Handler
-					_bk.functions.rule_handler = function(rule_array,full_path){
-														
-							// If we have rules
+					_bk.functions.rule_handler = function(rule_array,full_path,site_id_list){
+												
+							// If we have rules														
 							if(rule_array[0]){
 
 								var rule = {};							
 								rule.partner_id = partner_id[0]; // UPDATE 
 								rule.name = [full_path + " : "]; 
 								rule.type = "phint";
-								rule.site_ids = [];
+								rule.site_ids = site_id_list;
 								rule.category_ids = [];
 								rule.phints = []; // UPDATE 							
 
@@ -749,7 +759,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 					}
 
-					// Handle first level
+					// Handle first level					
 					if (j === 0){
 						
 						if(!window._bk.data.category_json[cell_value]){
@@ -772,8 +782,8 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 							};
 
-							// Add in rules if necessary
-							window._bk.data.category_json[full_path].rules.push(_bk.functions.rule_handler(rules[i],full_path));
+							// Add in rules if necessary														
+							window._bk.data.category_json[full_path].rules.push(_bk.functions.rule_handler(rules[i],full_path,site_id_list));
 							
 						} 
 
@@ -820,9 +830,8 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 						if(window._bk.data.category_json[my_path]){
 							
 							// Add in rules if necessary							
-							if((j +1) === window._bk.functions.clean_array_length(categories.data[i])){
-								
-								window._bk.data.category_json[my_path].rules.push(_bk.functions.rule_handler(rules[i],my_path));							
+							if((j +1) === window._bk.functions.clean_array_length(categories.data[i])){																
+								window._bk.data.category_json[my_path].rules.push(_bk.functions.rule_handler(rules[i],my_path,site_id_list));							
 							}
 							continue;
 						}
@@ -846,9 +855,8 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 						}
 
 						// Add in rules if necessary						
-						if((j +1) === window._bk.functions.clean_array_length(categories.data[i])){
-								
-								window._bk.data.category_json[my_path].rules.push(_bk.functions.rule_handler(rules[i],my_path));							
+						if((j +1) === window._bk.functions.clean_array_length(categories.data[i])){							
+								window._bk.data.category_json[my_path].rules.push(_bk.functions.rule_handler(rules[i],my_path,site_id_list));							
 						}
 
 						// Pass in parent path
@@ -865,7 +873,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 			}										
 			
-			// 1 : CALCULATE BATCH POINTS
+			// 1 : CALCULATE BATCH POINTS			
 			window._bk.logs.data_length = Object.keys(_bk.data.category_json).length; // how long is it?
 			window._bk.logs.batches = Math.ceil(window._bk.logs.data_length / intervals); // how many batches to run?
 
@@ -1086,8 +1094,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 						var call_number = _bk.logs.last_import.calls +1;
 						var number_of_calls = _bk.logs.data_length +1;
 
-						// Trigger call to add rule
-
+						// Trigger call to add rule						
 						jQuery.ajax({
 							type: "POST",
 							url: "https://publisher.bluekai.com/classification_rules",
@@ -1181,7 +1188,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 					
 					console.log("BK LOG : Papa has processed the csv below...");
 					console.log(results);
-										
+									
 					// Move colum headers somewhere else
 					window._bk.data = window._bk.data || {};
 					window._bk.data.column_headers = results.data[0];
@@ -1191,7 +1198,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 					// Split into categories/description/notes/rules
 
 					// FUNCTION : Column Parser
-					var column_parser = function(column_name){
+					var column_parser = function(column_name,replace_blanks){
 
 						var new_data = [];
 
@@ -1207,7 +1214,12 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 						
 						for (var i = 0; i < results.data.length; i++) {
 							
-							var data = (results.data[i][column_ref]) ? results.data[i][column_ref] : "-"; //  Sanitise note value
+							if(replace_blanks){
+								var data = (results.data[i][column_ref]) ? results.data[i][column_ref] : "-"; //  Replace blanks with "-"
+							} else {
+								var data = (results.data[i][column_ref]) ? results.data[i][column_ref] : ""; //  Leave blanks as ""
+							}
+							
 							new_data.push(data); // Create notes column
 							if(typeof column_ref !== "undefined"){results.data[i].splice(column_ref,1);} // Remove notes from results						
 							
@@ -1230,10 +1242,11 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 					// Create columns
 					var notes = column_parser("Notes"); // Notes
 					var descriptions = column_parser("Description"); // Description
-					var partner_id = column_parser("Partner ID (only required for rules)"); // Partner (ID)
-					var mutex = column_parser("Mutex Children (0 for false, 1 for true)"); // Mutex Categories
-					var nav_only = column_parser("Navigation Only (0 for false, 1 for true)"); // Navigation Only
-					var analytics_only = column_parser("Analytics Only (0 for false, 1 for true)"); // Analytics Only
+					var partner_id = column_parser("Partner ID (only required for rules)",true); // Partner (ID)
+					var mutex = column_parser("Mutex Children (0 for false, 1 for true)",true); // Mutex Categories
+					var nav_only = column_parser("Navigation Only (0 for false, 1 for true)",true); // Navigation Only
+					var analytics_only = column_parser("Analytics Only (0 for false, 1 for true)",true); // Analytics Only
+					var site_ids = column_parser("Site ID(s)",false); // Site IDs					
 
 					// Create rules columns
 					var rules = [];
@@ -1278,8 +1291,9 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 					if(typeof mutex !== "undefined"){passed_data.mutex = mutex;}
 					if(typeof analytics_only !== "undefined"){passed_data.analytics_only = analytics_only;}
 					if(typeof nav_only !== "undefined"){passed_data.navigation_only = nav_only;}
+					if(typeof site_ids !== "undefined"){passed_data.site_ids = site_ids;}					
 
-					// Send Data for processing
+					// Send Data for processing										
 					window._bk.functions.beginCategories(passed_data);
 					
 					alertify.success("CSV accepted : processing file (see console for logging)");
