@@ -15,7 +15,7 @@
 
 v1.57 (roshan.gonsalkorale@oracle.com)
 - Adding better logging for API rule fails
-- Adding in handling for API 
+- Will create new rule names if it fails because the rule name already exists
 
 v1.56 (roshan.gonsalkorale@oracle.com)
 - Adding Site ID filters for rules
