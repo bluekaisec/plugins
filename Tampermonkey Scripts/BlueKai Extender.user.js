@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BlueKai Extender
 // @namespace    http://tampermonkey.net/
-// @version      1.56
+// @version      1.57
 // @description  Extending BlueKai UI to improve
 // @author       Roshan Gonsalkorale (oracle_dmp_emea_deployments_gb_grp@oracle.com)
 // @match        https://*.bluekai.com/*
@@ -12,6 +12,10 @@
 // ==/UserScript==
 
 /* RELEASE NOTES
+
+v1.57 (roshan.gonsalkorale@oracle.com)
+- Adding better logging for API rule fails
+- Adding in handling for API 
 
 v1.56 (roshan.gonsalkorale@oracle.com)
 - Adding Site ID filters for rules
@@ -92,6 +96,25 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 	window._bk.functions = window._bk.functions || {};
 	window._bk.logs = window._bk.logs || {};
 
+	window._bk.logs.api_logs = window._bk.logs.api_logs || {};
+	window._bk.logs.api_logs.rules = window._bk.logs.api_logs.rules || {};
+
+	// Adding success/fail logging
+	window._bk.logs.api_logs.rules.successes = window._bk.logs.successes || {
+		call_log : [],
+		number_of_calls : 0
+	};		
+
+	window._bk.logs.api_logs.rules.fails = window._bk.logs.fails || {
+		call_log : [],
+		number_of_calls : 0
+	};
+
+	window._bk.logs.api_logs.rules.total = window._bk.logs.total || {
+		call_log : [],
+		number_of_calls : 0
+	};
+	
 	/*
 	#########################
 	### Generic Functions ###
@@ -126,6 +149,90 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 		document.body.appendChild(link); // Required for FF
 
 		link.click(); // This will download the data file named "my_data.csv".
+
+	}
+
+	// FUNCTION : API RULE CALLER
+	window._bk.functions.apiCallRule = function(data,call_marker,call_number,number_of_calls){
+				
+		window._bk.logs.api_logs = window._bk.logs.api_logs || {};
+		window._bk.logs.api_logs.rules = window._bk.logs.api_logs.rules || {};
+
+		// Adding success/fail logging
+		window._bk.logs.api_logs.rules.successes = window._bk.logs.successes || {
+			call_log : [],
+			number_of_calls : 0
+		};		
+
+		window._bk.logs.api_logs.rules.fails = window._bk.logs.fails || {
+			call_log : [],
+			number_of_calls : 0
+		};
+
+		window._bk.logs.api_logs.rules.total = window._bk.logs.total || {
+			call_log : [],
+			number_of_calls : 0
+		};
+
+
+		// Trim rule name to 250 chars if required
+		if(data.name.length > 250){
+ 			var chop = data.name.length - 250;
+  			data.name = data.name.slice(chop+3);
+  			data.name = "..." + data.name.trim(); // Trim front of string and add "..."
+		}
+
+		//Stringify data for JSON call
+		var stringified_data = JSON.stringify(data);
+
+		jQuery.ajax({
+			type: "POST",
+			url: "https://publisher.bluekai.com/classification_rules",
+			data: stringified_data,
+			dataType: "json",							
+			contentType: "application/json"
+
+		}).success(function(returnData) {
+							
+		// Success							
+		console.log("Self Classification | RULES | SUCCESS | " + call_number  + "/" + number_of_calls  + " | " + returnData.name);						
+
+		// Add data to logs
+		window._bk.logs.api_logs.rules.successes.call_log.push(JSON.parse(this.data)); // push into array 
+		window._bk.logs.api_logs.rules.successes.number_of_calls++; // increment logs
+		window._bk.logs.api_logs.rules.total.call_log.push(JSON.parse(this.data)); // push into array 
+		window._bk.logs.api_logs.rules.total.number_of_calls++; // increment logs
+							
+		}).fail(function(err,returnData) {
+
+		// Fail							
+		console.log("Self Classification | RULES | FAIL | " + call_number + "/" + number_of_calls + " | " + JSON.parse(this.data).name + " | " + err.responseText);
+		
+		// If name already taken
+		if(err.responseText.indexOf("has already been taken") > -1){
+
+			console.log("Self Classification | RULES | FAIL | " + call_number + "/" + number_of_calls + " | " + JSON.parse(this.data).name + " | Retrying rule with a '.' on the end");			
+			var rule_data = JSON.parse(this.data);							
+			rule_data.name = rule_data.name + "."; // Add a "." to the end of the rule			
+			window._bk.functions.apiCallRule(rule_data,"rename_call");
+
+		};												
+
+		}).always(function(data, textStatus,errorThrown){
+			
+			if(data.status === 500){				
+				console.log("Self Classification | RULES | FAIL | " + call_number + "/" + number_of_calls + " | " + JSON.parse(this.data).name + " | " + err.responseText);																				
+				
+				// Add data to logs
+				window._bk.logs.api_logs.rules.fails.call_log.push(JSON.parse(this.data)); // push into array 
+				window._bk.logs.api_logs.rules.fails.number_of_calls++; // increment logs
+				window._bk.logs.api_logs.rules.total.call_log.push(JSON.parse(this.data)); // push into array 
+				window._bk.logs.api_logs.rules.total.number_of_calls++; // increment logs
+			}
+
+			
+
+		});//
 
 	}
 
@@ -667,7 +774,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 			if(received_data.site_ids){var site_ids = received_data.site_ids;}			
 
 			// CONFIG : Specify how many calls you want to allow the browser to try at once
-			var intervals = 20;	// 20 is default
+			var intervals = 50;	// 20 is default
 
 			_bk.logs.call_number = 0; // kill logging
 
@@ -1065,8 +1172,7 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 			}).success(function(returnData) {
 
-				// Success
-				
+				// Success				
 				// Add parent_id to children
 				for (var i = 0; i < _bk.data.category_json[pathName].children.length; i++) {
 				
@@ -1092,37 +1198,14 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 					for (var i = 0; i < _bk.data.category_json[pathName].rules.length; i++) {
 						
 						_bk.data.category_json[pathName].rules[i].category_ids.push(category_id); // Add category ID to rules
-						var rule_data = JSON.stringify(_bk.data.category_json[pathName].rules[i]); 
+						var rule_data = _bk.data.category_json[pathName].rules[i]; 
 						var rule_name = _bk.data.category_json[pathName].rules[i].name;
 
 						var call_number = _bk.logs.last_import.calls +1;
 						var number_of_calls = _bk.logs.data_length +1;
 
-						// Trigger call to add rule						
-						jQuery.ajax({
-							type: "POST",
-							url: "https://publisher.bluekai.com/classification_rules",
-							data: rule_data,
-							dataType: "json",
-							//success: success() // build throttling
-							contentType: "application/json"
-
-						}).success(function(returnData) {
-							
-							// Success
-							
-							console.log("Self Classification | RULES | SUCCESS | " + call_number  + "/" + number_of_calls  + " | " + returnData.name);						
-							
-						}).fail(function(err,returnData) {
-
-							// Fail
-
-							// ADD ERROR DETAILS		
-							
-							console.log("Self Classification | RULES | FAIL | " + call_number + "/" + number_of_calls + " | rule name not available |" + err.responseText);						
-							
-
-						});
+						// Trigger call to add rule												
+						window._bk.functions.apiCallRule(rule_data,"initial call",call_number,number_of_calls);
 						
 					}
 
@@ -1159,19 +1242,35 @@ v1.4 (roshan.gonsalkorale@oracle.com)
 
 				} else {
 
-					// handle final call messaging
+					// handle final call messaging : categories
 					var ratio = ((_bk.logs.last_import.success / _bk.logs.last_import.calls) * 100).toFixed(2) + "%";
+
+					// handle final call messaging : rules
+					//var ratio_rules = ((_bk.logs.api_logs.rules.successes.number_of_calls / _bk.logs.api_logs.rules.total.number_of_calls) * 100).toFixed(2) + "%";
 					
+					// Handling for categories					
 					if (ratio !== "100.00%") {
 
-						alertify.error("Failures : " + ratio + " success rate (" + _bk.logs.last_import.fail + " fails out of " + _bk.logs.data_length + " - see console for details)");
+						alertify.error("Failures : " + ratio + " success rate for categories(" + _bk.logs.last_import.fail + " fails out of " + _bk.logs.data_length + " - check console for any rule fails (_bk.logs.api_logs.rules.fails) (better rule error handling coming in future version)");
+
+					} else {
+						
+						alertify.success("Success : " + ratio + " success rate for categories(" + _bk.logs.last_import.fail + " fails out of " + _bk.logs.data_length + " - check console for any rule fails (_bk.logs.api_logs.rules.fails) (better rule error handling coming in future version)");
+						
+					}
+
+					/*
+					// Handling for Rules
+					if (ratio === "100.00%"){
+
+						alertify.error("Failures : " + ratio_rules + " success rate for rules (" + _bk.logs.last_import.fail + " fails out of " + _bk.logs.data_length + " - see console for details(_bk.logs.api_logs.rules.successes))");
 
 					} else {
 
-						alertify.success("Success : " + ratio + " success rate (" + _bk.logs.last_import.fail + " fails out of " + _bk.logs.data_length + " - see console for details)");
-
+						alertify.success("Success : " + ratio_rules + " success rate for rules (" + _bk.logs.last_import.fail + " fails out of " + _bk.logs.data_length + " - see console for details (_bk.logs.api_logs.rules.fails))");
+											
 					}
-
+					*/
 				}
 
 			}
